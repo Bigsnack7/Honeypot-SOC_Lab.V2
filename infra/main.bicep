@@ -4,6 +4,7 @@ param location string = 'eastus2'
 param resourceGroupName string = 'rg-honeypot-soc-lab'
 param nsgName string = 'nsg-honeypot-soc'
 param vnetName string = 'vnet-honeypot-soc'
+param logAnalyticsWorkspaceName string = 'law-honeypot-soc'
 
 // 1. Create the Resource Group container
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
@@ -79,5 +80,33 @@ module vnet 'br/public:avm/res/network/virtual-network:0.5.1' = {
         networkSecurityGroupResourceId: nsg.outputs.resourceId
       }
     ]
+  }
+}
+
+// 4. Deploy the central Log Analytics Workspace with a 1GB/day safety data cap
+resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
+  scope: rg
+  name: logAnalyticsWorkspaceName
+  location: location
+  properties: {
+    sku: {
+      name: 'PerGB2018'
+    }
+    retentionInDays: 30
+    workspaceCapping: {
+      dailyQuotaGb: 1
+    }
+  }
+}
+
+// 5. Enable Microsoft Sentinel onboarding solution on top of the workspace
+resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01' = {
+  scope: rg
+  name: 'SecurityInsights(${logAnalyticsWorkspaceName})'
+  location: location
+  properties: {
+    workspaceResourceId: law.id
+    product: 'OMSGallery/SecurityInsights'
+    publisher: 'Microsoft'
   }
 }
