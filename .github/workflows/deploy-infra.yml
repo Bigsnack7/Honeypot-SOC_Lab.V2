@@ -31,4 +31,4 @@ jobs:
           region: eastus2
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
-          parameters: adminPassword=${{
+          parameters: adminPassword=${{ secrets.AZURE_VM_PASSWORD }}
