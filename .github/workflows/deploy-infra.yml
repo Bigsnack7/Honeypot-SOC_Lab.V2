@@ -28,5 +28,6 @@ jobs:
         with:
           scope: subscription
           subscriptionId: 'a6a131b5-d443-4556-8209-0626cb590668'
-          region: eastus
+          region: eastus2
           template: ./infra/main.bicep
+          additionalParameters: adminPassword=${{ secrets.VM_ADMIN_PASSWORD }}
