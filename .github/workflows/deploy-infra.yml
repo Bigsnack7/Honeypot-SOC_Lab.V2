@@ -25,10 +25,12 @@ jobs:
 
       - name: Deploy Base Infrastructure via Bicep
         uses: azure/arm-deploy@v2
+        env:
+          ADMIN_PASSWORD: ${{ secrets.VM_ADMIN_PASSWORD }}
         with:
           scope: subscription
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: eastus2
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
-          parameters: adminPassword=${{ secrets.AZURE_VM_PASSWORD }}
+          parameters: adminPassword=$ADMIN_PASSWORD
