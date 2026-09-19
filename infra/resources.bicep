@@ -146,7 +146,7 @@ resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
 }
 
 // D. Onboard Microsoft Sentinel
-resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01' = {
+resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' = {
   name: 'SecurityInsights(${logAnalyticsWorkspaceName})'
   location: location
   plan: {
