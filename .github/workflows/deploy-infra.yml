@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'infra/**' # Triggers when infrastructure files change
+      - 'infra/**'
 
 permissions:
   id-token: write
@@ -23,6 +23,10 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Test Connection
-        run: |
-          echo "Successfully authenticated to Azure! Pipeline connection is verified."
+      - name: Deploy Base Infrastructure via Bicep
+        uses: azure/arm-deploy@v2
+        with:
+          scope: subscription
+          subscriptionId: 'a6a131b5-d443-4556-8209-0626cb590668'
+          region: eastus
+          template: ./infra/main.bicep
