@@ -33,4 +33,4 @@ jobs:
           region: centralus
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
-          parameters: adminPassword=$ADMIN_PASSWORD
+          parameters: adminPassword="$ADMIN_PASSWORD"
