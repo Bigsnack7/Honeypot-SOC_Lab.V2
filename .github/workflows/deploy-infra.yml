@@ -27,7 +27,7 @@ jobs:
         uses: azure/arm-deploy@v2
         with:
           scope: subscription
-          subscriptionId: 'a6a131b5-d443-4556-8209-0626cb590668'
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           region: eastus2
           template: ./infra/main.bicep
-          additionalParameters: adminPassword=${{ secrets.VM_ADMIN_PASSWORD }}
+          parameters: adminPassword=${{ secrets.VM_ADMIN_PASSWORD }}
