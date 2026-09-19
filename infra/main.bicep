@@ -1,6 +1,6 @@
 targetScope = 'subscription'
 
-param location string = 'eastus2'
+param location string = 'centralus'
 param resourceGroupName string = 'rg-honeypot-soc-lab'
 param nsgName string = 'nsg-honeypot-soc'
 param vnetName string = 'vnet-honeypot-soc'
