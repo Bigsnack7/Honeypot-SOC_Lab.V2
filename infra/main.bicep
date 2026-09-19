@@ -27,4 +27,4 @@ module labResources './resources.bicep' = {
     adminPassword: adminPassword
   }
 }
-
+  
