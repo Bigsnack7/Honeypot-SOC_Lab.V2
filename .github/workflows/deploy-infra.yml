@@ -30,7 +30,7 @@ jobs:
         with:
           scope: subscription
           subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          region: eastus2
+          region: centralus
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
           parameters: adminPassword=$ADMIN_PASSWORD
