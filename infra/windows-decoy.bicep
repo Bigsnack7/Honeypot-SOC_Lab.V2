@@ -12,6 +12,9 @@ param adminPassword string
 resource publicIP 'Microsoft.Network/publicIPAddresses@2023-11-01' = {
   name: '${vmName}-pip'
   location: location
+  sku: {
+    name: 'Standard'
+  }
   properties: {
     publicIPAllocationMethod: 'Static'
     dnsSettings: {
@@ -47,7 +50,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   location: location
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_D2s_v3' // Lightweight 2 vCPU, 8GB RAM profile
+      vmSize: 'Standard_B2s' // downsized from D2s_v3 to control free-trial cost
     }
     osProfile: {
       computerName: vmName
