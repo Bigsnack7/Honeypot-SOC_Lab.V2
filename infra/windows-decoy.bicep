@@ -50,7 +50,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   location: location
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_D2s_v3' // Standard_d2s had no capacity in eastus2 for this subscription
+      vmSize: 'Standard_D2s_v7'  // Standard_d2s had no capacity in eastus2 for this subscription
     }
     osProfile: {
       computerName: vmName
