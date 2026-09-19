@@ -1,7 +1,7 @@
 targetScope = 'resourceGroup'
 
 param location string
-param subnetId string
+param subnetId string // Expecting a single string resource ID string
 param vmName string = 'vm-win-decoy'
 param adminUsername string = 'azureuser'
 
@@ -36,7 +36,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-11-01' = {
             id: publicIP.id
           }
           subnet: {
-            id: subnetId
+            id: subnetId // Properly maps the resolved subnet ID string
           }
         }
       }
@@ -50,7 +50,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   location: location
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_B2s' // downsized from D2s_v3 to control free-trial cost
+      vmSize: 'Standard_B2s' // Control free-trial cost
     }
     osProfile: {
       computerName: vmName
