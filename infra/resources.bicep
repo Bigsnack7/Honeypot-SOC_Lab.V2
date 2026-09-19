@@ -8,7 +8,7 @@ param logAnalyticsWorkspaceName string
 @secure()
 param adminPassword string
 
-// A. Deploy the Network Security Group
+// A. Deploy the Network Security Group via Azure Verified Modules (AVM)
 module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
   name: 'nsgDeployment'
   params: {
@@ -58,7 +58,7 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
   }
 }
 
-// B. Deploy the Virtual Network
+// B. Deploy the Virtual Network via Azure Verified Modules (AVM)
 module vnet 'br/public:avm/res/network/virtual-network:0.5.1' = {
   name: 'vnetDeployment'
   params: {
@@ -92,14 +92,18 @@ resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   }
 }
 
-// D. Onboard Microsoft Sentinel
+// D. Onboard Microsoft Sentinel (Fixed: Added required 'plan' metadata object)
 resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01' = {
   name: 'SecurityInsights(${logAnalyticsWorkspaceName})'
   location: location
-  properties: {
-    workspaceResourceId: law.id
+  plan: {
+    name: 'SecurityInsights(${logAnalyticsWorkspaceName})'
     product: 'OMSGallery/SecurityInsights'
     publisher: 'Microsoft'
+    promotionCode: ''
+  }
+  properties: {
+    workspaceResourceId: law.id
   }
 }
 
@@ -108,7 +112,8 @@ module windowsDecoy './windows-decoy.bicep' = {
   name: 'windowsDecoyDeployment'
   params: {
     location: location
-    subnetId: '${vnet.outputs.resourceId}/subnets/subnet-decoys'
+    // Fixed: Safe retrieval of the specific subnet resource ID dynamically from AVM array outputs
+    subnetId: vnet.outputs.subnetResourceIds[0] 
     adminPassword: adminPassword
   }
 }
