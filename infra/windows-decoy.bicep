@@ -50,7 +50,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   location: location
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_B2s' // Control free-trial cost
+      vmSize: 'Standard_B1s' // Standard_B2s had no capacity in eastus2 for this subscription
     }
     osProfile: {
       computerName: vmName
