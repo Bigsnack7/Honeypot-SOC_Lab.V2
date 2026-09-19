@@ -41,6 +41,59 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
           direction: 'Inbound'
         }
       }
+      // Outbound allows must sit ABOVE the internet deny so telemetry can escape
+      {
+        name: 'Allow-Outbound-AzureMonitor'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: 'AzureMonitor'
+          access: 'Allow'
+          priority: 100
+          direction: 'Outbound'
+        }
+      }
+      {
+        name: 'Allow-Outbound-AzureActiveDirectory'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: 'AzureActiveDirectory'
+          access: 'Allow'
+          priority: 110
+          direction: 'Outbound'
+        }
+      }
+      {
+        name: 'Allow-Outbound-Storage'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: 'Storage'
+          access: 'Allow'
+          priority: 120
+          direction: 'Outbound'
+        }
+      }
+      {
+        name: 'Allow-Outbound-AzureResourceManager'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '443'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: 'AzureResourceManager'
+          access: 'Allow'
+          priority: 130
+          direction: 'Outbound'
+        }
+      }
       {
         name: 'Deny-Outbound-To-Internet'
         properties: {
@@ -92,7 +145,7 @@ resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   }
 }
 
-// D. Onboard Microsoft Sentinel (Fixed: Added required 'plan' metadata object)
+// D. Onboard Microsoft Sentinel
 resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01' = {
   name: 'SecurityInsights(${logAnalyticsWorkspaceName})'
   location: location
@@ -112,7 +165,7 @@ module windowsDecoy './windows-decoy.bicep' = {
   name: 'windowsDecoyDeployment'
   params: {
     location: location
-    subnetId: vnet.outputs.subnetResourceIds[0] // Added '[0]' index to match string expectation
+    subnetId: vnet.outputs.subnetResourceIds[0]
     adminPassword: adminPassword
   }
 }
