@@ -6,107 +6,24 @@ param nsgName string = 'nsg-honeypot-soc'
 param vnetName string = 'vnet-honeypot-soc'
 param logAnalyticsWorkspaceName string = 'law-honeypot-soc'
 
-// 1. Create the Resource Group container
+@secure()
+param adminPassword string
+
+// 1. Provision the Resource Group Container at the subscription level
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
   location: location
 }
 
-// 2. Deploy the core Network Security Group inside the Resource Group
-module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
+// 2. Call the resource group-level nested module to deploy all structural components
+module labResources './resources.bicep' = {
   scope: rg
-  name: 'nsgDeployment'
+  name: 'labResourcesDeployment'
   params: {
-    name: nsgName
     location: location
-    securityRules: [
-      {
-        name: 'Allow-Inbound-RDP'
-        properties: {
-          protocol: 'Tcp'
-          sourcePortRange: '*'
-          destinationPortRange: '3389'
-          sourceAddressPrefix: '*'
-          destinationAddressPrefix: '*'
-          access: 'Allow'
-          priority: 1001
-          direction: 'Inbound'
-        }
-      }
-      {
-        name: 'Allow-Inbound-SSH'
-        properties: {
-          protocol: 'Tcp'
-          sourcePortRange: '*'
-          destinationPortRange: '22'
-          sourceAddressPrefix: '*'
-          destinationAddressPrefix: '*'
-          access: 'Allow'
-          priority: 1002
-          direction: 'Inbound'
-        }
-      }
-      {
-        name: 'Deny-Outbound-To-Internet'
-        properties: {
-          protocol: '*'
-          sourcePortRange: '*'
-          destinationPortRange: '*'
-          sourceAddressPrefix: '*'
-          destinationAddressPrefix: 'Internet'
-          access: 'Deny'
-          priority: 1000
-          direction: 'Outbound'
-        }
-      }
-    ]
-  }
-}
-
-// 3. Deploy the Isolated Virtual Network (VNET) mapped to our firewall
-module vnet 'br/public:avm/res/network/virtual-network:0.5.1' = {
-  scope: rg
-  name: 'vnetDeployment'
-  params: {
-    name: vnetName
-    location: location
-    addressPrefixes: [
-      '10.0.0.0/16'
-    ]
-    subnets: [
-      {
-        name: 'subnet-decoys'
-        addressPrefix: '10.0.1.0/24'
-        networkSecurityGroupResourceId: nsg.outputs.resourceId
-      }
-    ]
-  }
-}
-
-// 4. Deploy the central Log Analytics Workspace with a 1GB/day safety data cap
-resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
-  scope: rg
-  name: logAnalyticsWorkspaceName
-  location: location
-  properties: {
-    sku: {
-      name: 'PerGB2018'
-    }
-    retentionInDays: 30
-    workspaceCapping: {
-      dailyQuotaGb: 1
-    }
-  }
-}
-
-// 5. Enable Microsoft Sentinel onboarding solution on top of the workspace
-resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01' = {
-  scope: rg
-  name: 'SecurityInsights(${logAnalyticsWorkspaceName})'
-  location: location
-  properties: {
-    workspaceResourceId: law.id
-    product: 'OMSGallery/SecurityInsights'
-    publisher: 'Microsoft'
+    nsgName: nsgName
+    vnetName: vnetName
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+    adminPassword: adminPassword
   }
 }
