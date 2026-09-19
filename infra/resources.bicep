@@ -112,8 +112,7 @@ module windowsDecoy './windows-decoy.bicep' = {
   name: 'windowsDecoyDeployment'
   params: {
     location: location
-    // Fixed: Safe retrieval of the specific subnet resource ID dynamically from AVM array outputs
-    subnetId: vnet.outputs.subnetResourceIds[0] 
+    subnetId: vnet.outputs.subnetResourceIds[0] // Added '[0]' index to match string expectation
     adminPassword: adminPassword
   }
 }
