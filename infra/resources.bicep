@@ -44,6 +44,19 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
           direction: 'Inbound'
         }
       }
+      {
+        name: 'Allow-Inbound-HTTP'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '80'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+          access: 'Allow'
+          priority: 1003
+          direction: 'Inbound'
+        }
+      }
       // Outbound allows must sit ABOVE the internet deny so telemetry can escape
       {
         name: 'Allow-Outbound-AzureMonitor'
@@ -192,6 +205,16 @@ module windowsDecoy './windows-decoy.bicep' = {
 // F. Provision the Linux SSH Decoy (Cowrie)
 module linuxDecoy './linux-ssh-decoy.bicep' = {
   name: 'linuxDecoyDeployment-${uniqueString(deployment().name)}'
+  params: {
+    location: location
+    subnetId: vnet.outputs.subnetResourceIds[0]
+    sshPublicKey: sshPublicKey
+  }
+}
+
+// G. Provision the Web App Decoy
+module webDecoy './web-app-decoy.bicep' = {
+  name: 'webDecoyDeployment-${uniqueString(deployment().name)}'
   params: {
     location: location
     subnetId: vnet.outputs.subnetResourceIds[0]
