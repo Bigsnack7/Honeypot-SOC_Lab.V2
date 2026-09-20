@@ -13,7 +13,7 @@ param sshPublicKey string
 
 // A. Deploy the Network Security Group via Azure Verified Modules (AVM)
 module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
-  name: 'nsgDeployment'
+  name: 'nsgDeployment-${uniqueString(deployment().name)}'
   params: {
     name: nsgName
     location: location
@@ -116,7 +116,7 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
 
 // B. Deploy the Virtual Network via Azure Verified Modules (AVM)
 module vnet 'br/public:avm/res/network/virtual-network:0.5.1' = {
-  name: 'vnetDeployment'
+  name: 'vnetDeployment-${uniqueString(deployment().name)}'
   params: {
     name: vnetName
     location: location
@@ -165,7 +165,7 @@ resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' 
 
 // E. Provision the Windows Decoy Virtual Machine
 module windowsDecoy './windows-decoy.bicep' = {
-  name: 'windowsDecoyDeployment'
+  name: 'windowsDecoyDeployment-${uniqueString(deployment().name)}'
   params: {
     location: location
     subnetId: vnet.outputs.subnetResourceIds[0]
@@ -175,13 +175,10 @@ module windowsDecoy './windows-decoy.bicep' = {
 
 // F. Provision the Linux SSH Decoy (Cowrie)
 module linuxDecoy './linux-ssh-decoy.bicep' = {
-  name: 'linuxDecoyDeployment'
+  name: 'linuxDecoyDeployment-${uniqueString(deployment().name)}'
   params: {
     location: location
     subnetId: vnet.outputs.subnetResourceIds[0]
     sshPublicKey: sshPublicKey
   }
 }
-
-
-
