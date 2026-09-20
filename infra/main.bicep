@@ -7,7 +7,7 @@ param vnetName string = 'vnet-honeypot-soc'
 param logAnalyticsWorkspaceName string = 'law-honeypot-soc'
 
 @secure()
-param adminPassword string
+param sshPublicKey string
 
 // 1. Provision the Resource Group Container at the subscription level
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
