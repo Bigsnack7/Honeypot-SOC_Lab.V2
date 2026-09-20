@@ -170,3 +170,12 @@ module windowsDecoy './windows-decoy.bicep' = {
   }
 }
 
+// F. Provision the Linux SSH Decoy (Cowrie)
+module linuxDecoy './linux-ssh-decoy.bicep' = {
+  name: 'linuxDecoyDeployment'
+  params: {
+    location: location
+    subnetId: vnet.outputs.subnetResourceIds[0]
+    adminPassword: adminPassword
+  }
+}
