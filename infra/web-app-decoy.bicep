@@ -79,3 +79,18 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
       osDisk: {
         createOption: 'FromImage'
         managedDisk: {
+          storageAccountType: 'Standard_LRS'
+        }
+      }
+    }
+    networkProfile: {
+      networkInterfaces: [
+        {
+          id: nic.id
+        }
+      ]
+    }
+  }
+}
+
+output publicIpAddress string = publicIp.properties.ipAddress
