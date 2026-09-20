@@ -4,7 +4,7 @@ param location string
 param subnetId string // Expecting a single string resource ID string
 param vmName string = 'vm-win-decoy'
 param adminUsername string = 'azureuser'
-param dcrId string
+param dcrId string = ''
 
 @secure()
 param adminPassword string
@@ -98,8 +98,7 @@ resource sysmonInstall 'Microsoft.Compute/virtualMachines/extensions@2023-09-01'
     typeHandlerVersion: '1.10'
     autoUpgradeMinorVersion: true
     protectedSettings: {
-      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -EncodedCommand ${base64(sysmonScriptContent)}'
-    }
+      commandToExecute: 'powershell -ExecutionPolicy Unrestricted -Command "$content = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(\'${base64(sysmonScriptContent)}\')); Set-Content -Path C:\\install-sysmon.ps1 -Value $content; powershell -ExecutionPolicy Unrestricted -File C:\\install-sysmon.ps1"'
   }
 }
 
@@ -119,11 +118,9 @@ resource amaExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' 
   ]
 }
 
-// 6. Associate the DCR (built in Stage D) with this VM
-resource dcrAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2023-03-11' = {
+// 6. Associate the DCR (built in Stage D) with this VM — skipped until dcrId is provided
+resource dcrAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2023-03-11' = if (!empty(dcrId)) {
   name: 'dcr-association-windecoy'
   scope: vm
   properties: {
-    dataCollectionRuleId: dcrId
-  }
-}
+    dataCollectionRuleId:
