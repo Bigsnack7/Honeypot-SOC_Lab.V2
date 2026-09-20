@@ -7,6 +7,7 @@ param logAnalyticsWorkspaceName string
 
 @secure()
 param adminPassword string
+
 @secure()
 param sshPublicKey string
 
