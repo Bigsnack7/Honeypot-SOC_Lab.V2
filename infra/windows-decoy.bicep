@@ -99,6 +99,7 @@ resource sysmonInstall 'Microsoft.Compute/virtualMachines/extensions@2023-09-01'
     autoUpgradeMinorVersion: true
     protectedSettings: {
       commandToExecute: 'powershell -ExecutionPolicy Unrestricted -Command "$content = [System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String(\'${base64(sysmonScriptContent)}\')); Set-Content -Path C:\\install-sysmon.ps1 -Value $content; powershell -ExecutionPolicy Unrestricted -File C:\\install-sysmon.ps1"'
+    }
   }
 }
 
@@ -123,4 +124,6 @@ resource dcrAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2023-
   name: 'dcr-association-windecoy'
   scope: vm
   properties: {
-    dataCollectionRuleId:
+    dataCollectionRuleId: dcrId
+  }
+}
