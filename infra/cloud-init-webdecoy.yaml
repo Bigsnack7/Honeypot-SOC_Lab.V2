@@ -1,0 +1,112 @@
+#cloud-config
+runcmd:
+  # Wait for any background apt lock (e.g. unattended-upgrades) to clear
+  - |
+    for i in $(seq 1 30); do
+      if sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+        sleep 10
+      else
+        break
+      fi
+    done
+  - apt-get update
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip python3-venv
+  - useradd -m -s /bin/bash webdecoy
+  - su - webdecoy -c "python3 -m venv /home/webdecoy/venv"
+  - su - webdecoy -c "source /home/webdecoy/venv/bin/activate && pip install --upgrade pip && pip install flask"
+  - mkdir -p /home/webdecoy/app
+  - |
+    cat <<'PYEOF' > /home/webdecoy/app/decoy.py
+    from flask import Flask, request
+    import json
+    import datetime
+
+    app = Flask(__name__)
+    LOG_PATH = "/home/webdecoy/app/access.json"
+
+    def log_event(path, extra=None):
+        entry = {
+            "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+            "src_ip": request.headers.get("X-Forwarded-For", request.remote_addr),
+            "method": request.method,
+            "path": path,
+            "user_agent": request.headers.get("User-Agent", ""),
+            "form_data": request.form.to_dict() if request.form else None,
+        }
+        if extra:
+            entry.update(extra)
+        with open(LOG_PATH, "a") as f:
+            f.write(json.dumps(entry) + "\n")
+
+    @app.route("/", methods=["GET"])
+    def home():
+        log_event("/")
+        return "<h1>It works!</h1><p>Apache2 Default Page</p>", 200
+
+    @app.route("/wp-login.php", methods=["GET", "POST"])
+    def wp_login():
+        log_event("/wp-login.php", {"honeytoken": "wordpress_admin_probe"})
+        return """
+        <html><body>
+        <h2>WordPress Login</h2>
+        <form method="POST">
+          Username: <input type="text" name="log"><br>
+          Password: <input type="password" name="pwd"><br>
+          <input type="submit" value="Log In">
+        </form>
+        </body></html>
+        """, 200
+
+    @app.route("/.env", methods=["GET"])
+    def dotenv():
+        log_event("/.env", {"honeytoken": "env_file_probe"})
+        return "DB_HOST=localhost\nDB_USER=admin\nDB_PASS=changeme123\nAPI_KEY=sk-fake-1234567890\n", 200
+
+    @app.route("/admin", methods=["GET", "POST"])
+    def admin():
+        log_event("/admin", {"honeytoken": "admin_panel_probe"})
+        return """
+        <html><body>
+        <h2>Admin Panel</h2>
+        <form method="POST">
+          Username: <input type="text" name="username"><br>
+          Password: <input type="password" name="password"><br>
+          <input type="submit" value="Login">
+        </form>
+        </body></html>
+        """, 200
+
+    @app.errorhandler(404)
+    def not_found(e):
+        log_event(request.path, {"honeytoken": "404_probe"})
+        return "<h1>Not Found</h1>", 404
+
+    if __name__ == "__main__":
+        app.run(host="0.0.0.0", port=80)
+    PYEOF
+  - chown -R webdecoy:webdecoy /home/webdecoy/app
+  - touch /home/webdecoy/app/access.json
+  - chown webdecoy:webdecoy /home/webdecoy/app/access.json
+  - mkdir -p /etc/authbind/byport
+  - touch /etc/authbind/byport/80
+  - chown webdecoy:webdecoy /etc/authbind/byport/80
+  - chmod 770 /etc/authbind/byport/80
+  - apt-get install -y authbind
+  - |
+    cat <<'SERVICEEOF' > /etc/systemd/system/webdecoy.service
+    [Unit]
+    Description=Web App Decoy
+    After=network.target
+
+    [Service]
+    User=webdecoy
+    WorkingDirectory=/home/webdecoy/app
+    ExecStart=/usr/bin/authbind --deep /home/webdecoy/venv/bin/python3 /home/webdecoy/app/decoy.py
+    Restart=always
+
+    [Install]
+    WantedBy=multi-user.target
+    SERVICEEOF
+  - systemctl daemon-reload
+  - systemctl enable webdecoy
+  - systemctl start webdecoy
