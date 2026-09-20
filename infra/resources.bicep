@@ -216,8 +216,6 @@ module linuxDecoy './linux-ssh-decoy.bicep' = {
 module webDecoy './web-app-decoy.bicep' = {
   name: 'webDecoyDeployment-${uniqueString(deployment().name)}'
   params: {
-    location: location
-    subnetId: vnet.outputs.subnetResourceIds[0]
     sshPublicKey: sshPublicKey
   }
 }
