@@ -7,6 +7,9 @@ param vnetName string = 'vnet-honeypot-soc'
 param logAnalyticsWorkspaceName string = 'law-honeypot-soc'
 
 @secure()
+param adminPassword string
+
+@secure()
 param sshPublicKey string
 
 // 1. Provision the Resource Group Container at the subscription level
@@ -25,8 +28,6 @@ module labResources './resources.bicep' = {
     vnetName: vnetName
     logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
     adminPassword: adminPassword
+    sshPublicKey: sshPublicKey
   }
 }
-
-
-
