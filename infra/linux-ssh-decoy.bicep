@@ -46,11 +46,14 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
     hardwareProfile: {
       vmSize: 'Standard_D2s_v7' // Linux is lighter than Windows; small size is fine here
     }
-    osProfile: {
+       osProfile: {
       computerName: vmName
       adminUsername: adminUsername
       adminPassword: adminPassword
       customData: base64(cloudInitContent)
+      linuxConfiguration: {
+        disablePasswordAuthentication: false
+      }
     }
     storageProfile: {
       imageReference: {
