@@ -48,7 +48,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
     }
     osProfile: {
       computerName: vmName
-      adminUsername: 'azureuser'
+      adminUsername: adminUsername
       adminPassword: adminPassword
       customData: base64(cloudInitContent)
     }
