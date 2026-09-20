@@ -23,6 +23,11 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Debug Secret Length
+        run: echo "Password length is ${#PASS}"
+        env:
+          PASS: ${{ secrets.VM_ADMIN_PASSWORD }}
+
       - name: Deploy Base Infrastructure via Bicep
         uses: azure/arm-deploy@v2
         with:
