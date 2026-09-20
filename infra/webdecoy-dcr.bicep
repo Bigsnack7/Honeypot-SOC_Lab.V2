@@ -1,4 +1,4 @@
-param location string = 'eastus'
+param location string = 'centralus'
 param logAnalyticsWorkspaceResourceId string
 
 resource webDecoyDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
