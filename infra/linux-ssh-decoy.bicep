@@ -44,7 +44,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   location: location
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_B1s' // Linux is lighter than Windows; small size is fine here
+      vmSize: 'Standard_D2s_v7' // Linux is lighter than Windows; small size is fine here
     }
     osProfile: {
       computerName: vmName
