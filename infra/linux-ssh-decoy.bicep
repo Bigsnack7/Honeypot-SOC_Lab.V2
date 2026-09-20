@@ -1,8 +1,9 @@
 param location string
 param subnetId string
 param adminUsername string = 'azureuser'
+
 @secure()
-param adminPassword string
+param sshPublicKey string
 
 var vmName = 'vm-linux-decoy'
 var cloudInitContent = loadTextContent('cloud-init-cowrie.yaml')
@@ -46,13 +47,20 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
     hardwareProfile: {
       vmSize: 'Standard_D2s_v7' // Linux is lighter than Windows; small size is fine here
     }
-       osProfile: {
+          osProfile: {
       computerName: vmName
       adminUsername: adminUsername
-      adminPassword: adminPassword
       customData: base64(cloudInitContent)
       linuxConfiguration: {
-        disablePasswordAuthentication: false
+        disablePasswordAuthentication: true
+        ssh: {
+          publicKeys: [
+            {
+              path: '/home/${adminUsername}/.ssh/authorized_keys'
+              keyData: sshPublicKey
+            }
+          ]
+        }
       }
     }
     storageProfile: {
