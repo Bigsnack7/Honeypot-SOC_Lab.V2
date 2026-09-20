@@ -45,7 +45,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   location: location
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_D2s_v7' // Confirmed available capacity in centralus
+      vmSize: 'Standard_B1s'  // Confirmed available capacity in centralus
     }
     osProfile: {
       computerName: vmName
