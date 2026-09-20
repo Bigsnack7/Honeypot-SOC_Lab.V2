@@ -32,3 +32,4 @@ jobs:
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
           parameters: adminPassword=${{ secrets.VM_ADMIN_PASSWORD }}
+
