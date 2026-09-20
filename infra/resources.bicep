@@ -169,3 +169,4 @@ module windowsDecoy './windows-decoy.bicep' = {
     adminPassword: adminPassword
   }
 }
+
