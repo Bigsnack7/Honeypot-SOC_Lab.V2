@@ -36,7 +36,8 @@ jobs:
           region: centralus
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
-          parameters: adminPassword=${{ secrets.VM_ADMIN_PASSWORD }} sshPublicKey='${{ secrets.VM_SSH_PUBLIC_KEY }}'
-
-          
-
+          parameters: >
+            {
+              "adminPassword": { "value": "${{ secrets.VM_ADMIN_PASSWORD }}" },
+              "sshPublicKey": { "value": "${{ secrets.VM_SSH_PUBLIC_KEY }}" }
+            }
