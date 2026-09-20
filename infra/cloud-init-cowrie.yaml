@@ -1,0 +1,38 @@
+#cloud-config
+package_update: true
+package_upgrade: false
+
+packages:
+  - git
+  - python3-venv
+  - python3-dev
+  - libssl-dev
+  - libffi-dev
+  - build-essential
+  - authbind
+
+users:
+  - name: cowrie
+    system: true
+    shell: /bin/bash
+    home: /home/cowrie
+
+write_files:
+  - path: /etc/ssh/sshd_config.d/99-honeypot.conf
+    content: |
+      Port 2222
+    owner: root:root
+    permissions: '0644'
+  - path: /etc/authbind/byport/22
+    content: ""
+    owner: cowrie:cowrie
+    permissions: '0770'
+
+runcmd:
+  - systemctl restart sshd
+  - su - cowrie -c "git clone https://github.com/cowrie/cowrie.git /home/cowrie/cowrie"
+  - su - cowrie -c "cd /home/cowrie/cowrie && python3 -m venv cowrie-env"
+  - su - cowrie -c "cd /home/cowrie/cowrie && source cowrie-env/bin/activate && pip install --upgrade pip && pip install -r requirements.txt"
+  - su - cowrie -c "cp /home/cowrie/cowrie/etc/cowrie.cfg.dist /home/cowrie/cowrie/etc/cowrie.cfg"
+  - sed -i 's/^listen_endpoints = tcp:2222.*/listen_endpoints = tcp:22:interface=0.0.0.0/' /home/cowrie/cowrie/etc/cowrie.cfg
+  - su - cowrie -c "cd /home/cowrie/cowrie && source cowrie-env/bin/activate && authbind --deep bin/cowrie start"
