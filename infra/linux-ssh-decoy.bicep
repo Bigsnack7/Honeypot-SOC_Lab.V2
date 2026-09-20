@@ -88,4 +88,23 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   }
 }
 
-resource amaExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' = {
+resource amaExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' = {   parent: vm
+  name: 'AzureMonitorLinuxAgent'
+  location: location
+  properties: {
+    publisher: 'Microsoft.Azure.Monitor'
+    type: 'AzureMonitorLinuxAgent'
+    typeHandlerVersion: '1.33'
+    autoUpgradeMinorVersion: true
+  }
+}
+
+resource dcrAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2023-03-11' = {
+  name: 'dcr-association-cowrie'
+  scope: vm
+  properties: {
+    dataCollectionRuleId: dcrId
+  }
+}
+
+output publicIpAddress string = publicIp.properties.ipAddress
