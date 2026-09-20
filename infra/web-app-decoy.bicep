@@ -51,7 +51,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   location: location
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_B1s' // eastus has its own untouched 4-core quota
+      vmSize: 'Standard_D2s_v7'  // eastus has its own untouched 4-core quota
     }
     osProfile: {
       computerName: vmName
