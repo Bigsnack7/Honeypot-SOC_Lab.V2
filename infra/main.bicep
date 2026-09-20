@@ -17,8 +17,8 @@ resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
 
 // 2. Call the resource group-level nested module to deploy all structural components
 module labResources './resources.bicep' = {
-  scope: resourceGroup(rg.name) // Fixed: Explicitly scope to the newly created resource group name syntax
-  name: 'labResourcesDeployment-${uniqueString(rg.id)}' // Best Practice: Dynamic naming prevents collision
+  scope: resourceGroup(rg.name)
+  name: 'labResourcesDeployment-${uniqueString(rg.id, deployment().name)}'
   params: {
     location: location
     nsgName: nsgName
