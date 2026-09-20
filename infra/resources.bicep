@@ -202,6 +202,27 @@ module windowsDecoy './windows-decoy.bicep' = {
   }
 }
 
+// H. Create the custom table for Cowrie logs
+module cowrieTable './cowrie-table.bicep' = {
+  name: 'cowrieTableDeployment-${uniqueString(deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+}
+
+// I. Create the Data Collection Rule for Cowrie
+module cowrieDcr './cowrie-dcr.bicep' = {
+  name: 'cowrieDcrDeployment-${uniqueString(deployment().name)}'
+  params: {
+    location: location
+    logAnalyticsWorkspaceResourceId: law.id
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+  dependsOn: [
+    cowrieTable
+  ]
+}
+
 // F. Provision the Linux SSH Decoy (Cowrie)
 module linuxDecoy './linux-ssh-decoy.bicep' = {
   name: 'linuxDecoyDeployment-${uniqueString(deployment().name)}'
@@ -209,6 +230,7 @@ module linuxDecoy './linux-ssh-decoy.bicep' = {
     location: location
     subnetId: vnet.outputs.subnetResourceIds[0]
     sshPublicKey: sshPublicKey
+    dcrId: cowrieDcr.outputs.dcrId
   }
 }
 
