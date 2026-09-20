@@ -93,3 +93,4 @@ output publicIpAddress string = publicIp.properties.ipAddress
 
 
 
+
