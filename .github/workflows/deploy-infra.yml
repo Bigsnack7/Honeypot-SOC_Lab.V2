@@ -23,10 +23,17 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      - name: Debug Secret Length
-        run: echo "Password length is ${#PASS}"
+      - name: Generate Parameters File
+        run: |
+          cat <<EOF > params.json
+          {
+            "adminPassword": { "value": "$ADMIN_PASSWORD" },
+            "sshPublicKey": { "value": "$SSH_PUBLIC_KEY" }
+          }
+          EOF
         env:
-          PASS: ${{ secrets.VM_ADMIN_PASSWORD }}
+          ADMIN_PASSWORD: ${{ secrets.VM_ADMIN_PASSWORD }}
+          SSH_PUBLIC_KEY: ${{ secrets.VM_SSH_PUBLIC_KEY }}
 
       - name: Deploy Base Infrastructure via Bicep
         uses: azure/arm-deploy@v2
@@ -36,8 +43,4 @@ jobs:
           region: centralus
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
-          parameters: >
-            {
-              "adminPassword": { "value": "${{ secrets.VM_ADMIN_PASSWORD }}" },
-              "sshPublicKey": { "value": "${{ secrets.VM_SSH_PUBLIC_KEY }}" }
-            }
+          parameters: params.json
