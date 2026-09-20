@@ -6,7 +6,7 @@ param vnetName string
 param logAnalyticsWorkspaceName string
 
 @secure()
-param adminPassword string
+param sshPublicKey string
 
 // A. Deploy the Network Security Group via Azure Verified Modules (AVM)
 module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
