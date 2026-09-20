@@ -27,13 +27,3 @@ module labResources './resources.bicep' = {
     adminPassword: adminPassword
   }
 }
-// F. Provision the Linux SSH Decoy (Cowrie)
-module linuxDecoy './linux-ssh-decoy.bicep' = {
-  scope: resourceGroup(rg.name)
-  name: 'linuxDecoyDeployment-${uniqueString(rg.id, deployment().name)}'
-  params: {
-    location: location
-    subnetId: vnet.outputs.subnetResourceIds[0]
-    adminPassword: adminPassword
-  }
-}
