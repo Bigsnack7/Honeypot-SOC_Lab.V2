@@ -89,6 +89,3 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
 }
 
 resource amaExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' = {
-  parent: vm
-  name: 'AzureMonitorLinuxAgent'
-  location:
