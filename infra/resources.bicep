@@ -98,6 +98,22 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
         }
       }
       {
+        name: 'Allow-Outbound-Internet-Setup'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRanges: [
+            '80'
+            '443'
+          ]
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: 'Internet'
+          access: 'Allow'
+          priority: 140
+          direction: 'Outbound'
+        }
+      }
+      {
         name: 'Deny-Outbound-To-Internet'
         properties: {
           protocol: '*'
