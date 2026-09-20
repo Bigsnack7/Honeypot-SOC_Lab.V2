@@ -233,10 +233,30 @@ module linuxDecoy './linux-ssh-decoy.bicep' = {
   }
 }
 
+// J. Create the custom table for Web Decoy logs
+module webDecoyTable './webdecoy-table.bicep' = {
+  name: 'webDecoyTableDeployment-${uniqueString(deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+}
+
+// K. Create the Data Collection Rule for Web Decoy
+module webDecoyDcr './webdecoy-dcr.bicep' = {
+  name: 'webDecoyDcrDeployment-${uniqueString(deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceResourceId: law.id
+  }
+  dependsOn: [
+    webDecoyTable
+  ]
+}
+
 // G. Provision the Web App Decoy
 module webDecoy './web-app-decoy.bicep' = {
   name: 'webDecoyDeployment-${uniqueString(deployment().name)}'
   params: {
     sshPublicKey: sshPublicKey
+    dcrId: webDecoyDcr.outputs.dcrId
   }
 }
