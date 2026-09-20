@@ -216,7 +216,6 @@ module cowrieDcr './cowrie-dcr.bicep' = {
   params: {
     location: location
     logAnalyticsWorkspaceResourceId: law.id
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
   }
   dependsOn: [
     cowrieTable
