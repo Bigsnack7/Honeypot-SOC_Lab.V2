@@ -1,6 +1,6 @@
 param location string
 param subnetId string
-
+param adminUsername string = 'azureuser'
 @secure()
 param adminPassword string
 
