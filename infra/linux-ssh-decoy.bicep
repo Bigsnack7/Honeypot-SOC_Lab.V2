@@ -44,6 +44,9 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-11-01' = {
 resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   name: vmName
   location: location
+  identity: {
+    type: 'SystemAssigned'
+  }
   properties: {
     hardwareProfile: {
       vmSize: 'Standard_D2s_v7' // Linux is lighter than Windows; small size is fine here
@@ -88,7 +91,8 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   }
 }
 
-resource amaExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' = {   parent: vm
+resource amaExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' = {
+  parent: vm
   name: 'AzureMonitorLinuxAgent'
   location: location
   properties: {
