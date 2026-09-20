@@ -1,11 +1,18 @@
 param location string
 param logAnalyticsWorkspaceResourceId string
-param logAnalyticsWorkspaceName string
 
 resource cowrieDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
   name: 'dcr-cowrie-logs'
   location: location
   properties: {
+    streamDeclarations: {
+      'Custom-Cowrie_CL': {
+        columns: [
+          { name: 'TimeGenerated', type: 'datetime' }
+          { name: 'RawData', type: 'string' }
+        ]
+      }
+    }
     dataSources: {
       logFiles: [
         {
@@ -36,16 +43,3 @@ resource cowrieDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
     dataFlows: [
       {
         streams: [
-          'Custom-Cowrie_CL'
-        ]
-        destinations: [
-          'cowrieWorkspace'
-        ]
-        transformKql: 'source | extend TimeGenerated = now(), RawData = RawData'
-        outputStream: 'Custom-Cowrie_CL'
-      }
-    ]
-  }
-}
-
-output dcrId string = cowrieDcr.id
