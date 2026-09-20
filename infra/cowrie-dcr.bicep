@@ -42,4 +42,16 @@ resource cowrieDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
     }
     dataFlows: [
       {
-        streams: [
+        streams: [           'Custom-Cowrie_CL'
+        ]
+        destinations: [
+          'cowrieWorkspace'
+        ]
+        transformKql: 'source | extend TimeGenerated = now(), RawData = RawData'
+        outputStream: 'Custom-Cowrie_CL'
+      }
+    ]
+  }
+}
+
+output dcrId string = cowrieDcr.id
