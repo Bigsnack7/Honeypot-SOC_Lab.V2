@@ -1,6 +1,7 @@
 param location string
 param subnetId string
 param adminUsername string = 'azureuser'
+param dcrId string
 
 @secure()
 param sshPublicKey string
@@ -47,7 +48,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
     hardwareProfile: {
       vmSize: 'Standard_D2s_v7' // Linux is lighter than Windows; small size is fine here
     }
-          osProfile: {
+    osProfile: {
       computerName: vmName
       adminUsername: adminUsername
       customData: base64(cloudInitContent)
@@ -87,8 +88,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   }
 }
 
-output publicIpAddress string = publicIp.properties.ipAddress
-
-
-
-
+resource amaExtension 'Microsoft.Compute/virtualMachines/extensions@2023-09-01' = {
+  parent: vm
+  name: 'AzureMonitorLinuxAgent'
+  location:
