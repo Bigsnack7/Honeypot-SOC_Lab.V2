@@ -1,5 +1,6 @@
 param location string = 'eastus'
 param adminUsername string = 'azureuser'
+param dcrId string
 
 @secure()
 param sshPublicKey string
@@ -46,51 +47,4 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-11-01' = {
   }
 }
 
-resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
-  name: vmName
-  location: location
-  properties: {
-    hardwareProfile: {
-      vmSize: 'Standard_D2s_v7'  // eastus has its own untouched 4-core quota
-    }
-    osProfile: {
-      computerName: vmName
-      adminUsername: adminUsername
-      customData: base64(cloudInitContent)
-      linuxConfiguration: {
-        disablePasswordAuthentication: true
-        ssh: {
-          publicKeys: [
-            {
-              path: '/home/${adminUsername}/.ssh/authorized_keys'
-              keyData: sshPublicKey
-            }
-          ]
-        }
-      }
-    }
-    storageProfile: {
-      imageReference: {
-        publisher: 'Canonical'
-        offer: '0001-com-ubuntu-server-jammy'
-        sku: '22_04-lts-gen2'
-        version: 'latest'
-      }
-      osDisk: {
-        createOption: 'FromImage'
-        managedDisk: {
-          storageAccountType: 'Standard_LRS'
-        }
-      }
-    }
-    networkProfile: {
-      networkInterfaces: [
-        {
-          id: nic.id
-        }
-      ]
-    }
-  }
-}
-
-output publicIpAddress string = publicIp.properties.ipAddress
+resource
