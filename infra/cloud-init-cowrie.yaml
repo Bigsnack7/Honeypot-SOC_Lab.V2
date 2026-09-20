@@ -1,34 +1,23 @@
 #cloud-config
-package_update: true
-package_upgrade: false
-
-packages:
-  - git
-  - python3-venv
-  - python3-dev
-  - libssl-dev
-  - libffi-dev
-  - build-essential
-  - authbind
-
-users:
-  - name: cowrie
-    system: true
-    shell: /bin/bash
-    home: /home/cowrie
-
-write_files:
-  - path: /etc/ssh/sshd_config.d/99-honeypot.conf
-    content: |
-      Port 2222
-    owner: root:root
-    permissions: '0644'
-  - path: /etc/authbind/byport/22
-    content: ""
-    owner: cowrie:cowrie
-    permissions: '0770'
-
 runcmd:
+  # Wait for any background apt lock (e.g. unattended-upgrades) to clear
+  - |
+    for i in $(seq 1 30); do
+      if sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1; then
+        sleep 10
+      else
+        break
+      fi
+    done
+  - apt-get update
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y git python3-venv python3-dev libssl-dev libffi-dev build-essential authbind
+  - useradd -m -s /bin/bash cowrie
+  - mkdir -p /etc/authbind/byport
+  - touch /etc/authbind/byport/22
+  - chown cowrie:cowrie /etc/authbind/byport/22
+  - chmod 770 /etc/authbind/byport/22
+  - mkdir -p /etc/ssh/sshd_config.d
+  - echo "Port 2222" > /etc/ssh/sshd_config.d/99-honeypot.conf
   - systemctl restart sshd
   - su - cowrie -c "git clone https://github.com/cowrie/cowrie.git /home/cowrie/cowrie"
   - su - cowrie -c "cd /home/cowrie/cowrie && python3 -m venv cowrie-env"
