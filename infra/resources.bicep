@@ -176,6 +176,6 @@ module linuxDecoy './linux-ssh-decoy.bicep' = {
   params: {
     location: location
     subnetId: vnet.outputs.subnetResourceIds[0]
-    adminPassword: adminPassword
+    sshPublicKey: sshPublicKey
   }
 }
