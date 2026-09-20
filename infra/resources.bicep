@@ -192,6 +192,15 @@ resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' 
   }
 }
 
+// L. Create the Data Collection Rule for Windows (Security + Sysmon)
+module windowsDcr './windows-dcr.bicep' = {
+  name: 'windowsDcrDeployment-${uniqueString(deployment().name)}'
+  params: {
+    location: location
+    logAnalyticsWorkspaceResourceId: law.id
+  }
+}
+
 // E. Provision the Windows Decoy Virtual Machine
 module windowsDecoy './windows-decoy.bicep' = {
   name: 'windowsDecoyDeployment-${uniqueString(deployment().name)}'
@@ -199,6 +208,7 @@ module windowsDecoy './windows-decoy.bicep' = {
     location: location
     subnetId: vnet.outputs.subnetResourceIds[0]
     adminPassword: adminPassword
+    dcrId: windowsDcr.outputs.dcrId
   }
 }
 
