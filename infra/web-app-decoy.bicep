@@ -1,5 +1,4 @@
-param location string
-param subnetId string
+param location string = 'eastus'
 param adminUsername string = 'azureuser'
 
 @secure()
@@ -7,6 +6,13 @@ param sshPublicKey string
 
 var vmName = 'vm-web-decoy'
 var cloudInitContent = loadTextContent('cloud-init-webdecoy.yaml')
+
+module network './web-decoy-network.bicep' = {
+  name: 'webDecoyNetworkDeployment-${uniqueString(deployment().name)}'
+  params: {
+    location: location
+  }
+}
 
 resource publicIp 'Microsoft.Network/publicIPAddresses@2023-11-01' = {
   name: '${vmName}-pip'
@@ -28,7 +34,7 @@ resource nic 'Microsoft.Network/networkInterfaces@2023-11-01' = {
         name: 'ipconfig1'
         properties: {
           subnet: {
-            id: subnetId
+            id: network.outputs.subnetId
           }
           privateIPAllocationMethod: 'Dynamic'
           publicIPAddress: {
@@ -45,7 +51,7 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
   location: location
   properties: {
     hardwareProfile: {
-      vmSize: 'Standard_B1s'  // Confirmed available capacity in centralus
+      vmSize: 'Standard_B1s' // eastus has its own untouched 4-core quota
     }
     osProfile: {
       computerName: vmName
@@ -73,19 +79,3 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
       osDisk: {
         createOption: 'FromImage'
         managedDisk: {
-          storageAccountType: 'Standard_LRS'
-        }
-      }
-    }
-    networkProfile: {
-      networkInterfaces: [
-        {
-          id: nic.id
-        }
-      ]
-    }
-  }
-}
-
-output publicIpAddress string = publicIp.properties.ipAddress
-
