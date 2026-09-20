@@ -88,3 +88,4 @@ resource vm 'Microsoft.Compute/virtualMachines@2024-03-01' = {
 }
 
 output publicIpAddress string = publicIp.properties.ipAddress
+
