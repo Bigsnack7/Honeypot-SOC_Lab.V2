@@ -18,3 +18,4 @@ resource cowrieTable 'Microsoft.OperationalInsights/workspaces/tables@2023-09-01
     retentionInDays: 30
   }
 }
+
