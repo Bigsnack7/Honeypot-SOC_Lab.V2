@@ -313,3 +313,4 @@ module webDecoyScanningRule './analytics-rule-webdecoy-scanning.bicep' = {
     sentinelOnboarding
   ]
 }
+
