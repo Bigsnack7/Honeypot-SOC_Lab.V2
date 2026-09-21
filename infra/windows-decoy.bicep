@@ -128,3 +128,5 @@ resource dcrAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2023-
   }
 }
 
+
+
