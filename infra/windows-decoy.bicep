@@ -127,3 +127,4 @@ resource dcrAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2023-
     dataCollectionRuleId: dcrId
   }
 }
+
