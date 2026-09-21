@@ -192,6 +192,13 @@ resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' 
   }
 }
 
+// D2. Complete Sentinel onboarding for the modern API (alert rules require this)
+resource sentinelOnboarding 'Microsoft.SecurityInsights/onboardingStates@2024-03-01' = {
+  scope: law
+  name: 'default'
+  properties: {}
+}
+
 // M. Create Analytics Rule: Cowrie SSH Brute Force Detection
 module cowrieBruteForceRule './analytics-rule-cowrie-bruteforce.bicep' = {
   name: 'cowrieBruteForceRuleDeployment-${uniqueString(deployment().name)}'
@@ -200,6 +207,7 @@ module cowrieBruteForceRule './analytics-rule-cowrie-bruteforce.bicep' = {
   }
   dependsOn: [
     sentinel
+    sentinelOnboarding
   ]
 }
 
