@@ -14,3 +14,4 @@ Invoke-WebRequest -Uri $configUrl -OutFile $configPath
 
 # Install Sysmon with the config (64-bit assumed for D-series VMs)
 Start-Process -FilePath "C:\Sysmon\Sysmon64.exe" -ArgumentList "-accepteula -i C:\Sysmon\sysmonconfig.xml" -Wait -NoNewWindow
+
