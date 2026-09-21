@@ -25,3 +25,4 @@ runcmd:
   - su - cowrie -c "cd /home/cowrie/my-honeypot && source cowrie-env/bin/activate && cowrie init"
   - sed -i 's/^listen_endpoints = tcp:2222.*/listen_endpoints = tcp:22:interface=0.0.0.0/' /home/cowrie/my-honeypot/etc/cowrie.cfg
   - su - cowrie -c "cd /home/cowrie/my-honeypot && source cowrie-env/bin/activate && authbind --deep cowrie start"
+
