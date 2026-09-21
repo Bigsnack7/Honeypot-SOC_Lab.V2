@@ -314,3 +314,15 @@ module webDecoyScanningRule './analytics-rule-webdecoy-scanning.bicep' = {
   ]
 }
 
+// P. Deploy the Sentinel Workbook Dashboard
+module honeypotWorkbook './sentinel-workbook.bicep' = {
+  name: 'honeypotWorkbookDeployment-${uniqueString(deployment().name)}'
+  params: {
+    location: location
+    logAnalyticsWorkspaceResourceId: law.id
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+  ]
+}
