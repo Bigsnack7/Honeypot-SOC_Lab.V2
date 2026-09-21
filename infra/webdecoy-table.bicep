@@ -18,3 +18,4 @@ resource webDecoyTable 'Microsoft.OperationalInsights/workspaces/tables@2023-09-
     retentionInDays: 30
   }
 }
+
