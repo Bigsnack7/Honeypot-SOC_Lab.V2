@@ -57,3 +57,4 @@ resource windowsDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
 }
 
 output dcrId string = windowsDcr.id
+
