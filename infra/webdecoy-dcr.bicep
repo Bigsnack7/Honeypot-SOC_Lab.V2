@@ -56,3 +56,4 @@ resource webDecoyDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
 }
 
 output dcrId string = webDecoyDcr.id
+
