@@ -55,4 +55,3 @@ resource cowrieDcr 'Microsoft.Insights/dataCollectionRules@2023-03-11' = {
 }
 
 output dcrId string = cowrieDcr.id
-
