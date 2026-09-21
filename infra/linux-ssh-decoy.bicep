@@ -112,3 +112,4 @@ resource dcrAssociation 'Microsoft.Insights/dataCollectionRuleAssociations@2023-
 }
 
 output publicIpAddress string = publicIp.properties.ipAddress
+
