@@ -289,3 +289,27 @@ module webDecoy './web-app-decoy.bicep' = {
     dcrId: webDecoyDcr.outputs.dcrId
   }
 }
+
+// N. Create Analytics Rule: Windows RDP Brute Force Detection
+module windowsBruteForceRule './analytics-rule-windows-bruteforce.bicep' = {
+  name: 'windowsBruteForceRuleDeployment-${uniqueString(deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+  ]
+}
+
+// O. Create Analytics Rule: Web Decoy Sensitive Path Scanning
+module webDecoyScanningRule './analytics-rule-webdecoy-scanning.bicep' = {
+  name: 'webDecoyScanningRuleDeployment-${uniqueString(deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+  ]
+}
