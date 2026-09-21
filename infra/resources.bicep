@@ -193,7 +193,7 @@ resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' 
 }
 
 // D2. Complete Sentinel onboarding for the modern API (alert rules require this)
-resource sentinelOnboarding 'Microsoft.SecurityInsights/onboardingStates@2024-03-01' = {
+resource sentinelOnboarding 'Microsoft.SecurityInsights/onboardingStates@2023-02-01-preview' = {
   scope: law
   name: 'default'
   properties: {}
