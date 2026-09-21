@@ -25,6 +25,8 @@ resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
     queryPeriod: 'PT5M'
     triggerOperator: 'GreaterThan'
     triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
     tactics: [
       'CredentialAccess'
     ]
