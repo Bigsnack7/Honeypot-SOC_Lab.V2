@@ -192,6 +192,17 @@ resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' 
   }
 }
 
+// M. Create Analytics Rule: Cowrie SSH Brute Force Detection
+module cowrieBruteForceRule './analytics-rule-cowrie-bruteforce.bicep' = {
+  name: 'cowrieBruteForceRuleDeployment-${uniqueString(deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+  dependsOn: [
+    sentinel
+  ]
+}
+
 // L. Create the Data Collection Rule for Windows (Security + Sysmon)
 module windowsDcr './windows-dcr.bicep' = {
   name: 'windowsDcrDeployment-${uniqueString(deployment().name)}'
