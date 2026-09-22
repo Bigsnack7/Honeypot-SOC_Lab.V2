@@ -32,5 +32,3 @@ module labResources './resources.bicep' = {
   }
 }
 
-
-
