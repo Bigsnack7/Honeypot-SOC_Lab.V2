@@ -23,6 +23,9 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
+      - name: Show Active Account
+        run: az account show --query "{user:user.name, id:user.type}" -o table
+
       - name: Generate Parameters File
         run: |
           cat <<EOF > params.json
@@ -44,4 +47,3 @@ jobs:
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
           parameters: params.json
-
