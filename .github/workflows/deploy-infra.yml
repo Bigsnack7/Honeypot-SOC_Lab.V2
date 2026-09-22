@@ -24,7 +24,9 @@ jobs:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Show Active Account
-        run: az account show --query "{user:user.name, id:user.type}" -o table
+        run: |
+          FULL_ID=$(az account show --query "user.name" -o tsv)
+          echo "Last 8 characters of client ID: ${FULL_ID: -8}"
 
       - name: Generate Parameters File
         run: |
@@ -47,4 +49,3 @@ jobs:
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
           parameters: params.json
-
