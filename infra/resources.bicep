@@ -326,3 +326,4 @@ module honeypotWorkbook './sentinel-workbook.bicep' = {
     sentinelOnboarding
   ]
 }
+
