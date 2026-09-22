@@ -47,3 +47,4 @@ jobs:
           template: ./infra/main.bicep
           deploymentName: main-${{ github.run_id }}
           parameters: params.json
+
