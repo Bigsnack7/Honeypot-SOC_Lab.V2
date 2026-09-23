@@ -57,6 +57,19 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
           direction: 'Inbound'
         }
       }
+      {
+        name: 'Allow-Inbound-SMB'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRange: '445'
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: '*'
+          access: 'Allow'
+          priority: 1004
+          direction: 'Inbound'
+        }
+      }
       // Outbound allows must sit ABOVE the internet deny so telemetry can escape
       {
         name: 'Allow-Outbound-AzureMonitor'
@@ -107,22 +120,6 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
           destinationAddressPrefix: 'AzureResourceManager'
           access: 'Allow'
           priority: 130
-          direction: 'Outbound'
-        }
-      }
-      {
-        name: 'Allow-Outbound-Internet-Setup'
-        properties: {
-          protocol: 'Tcp'
-          sourcePortRange: '*'
-          destinationPortRanges: [
-            '80'
-            '443'
-          ]
-          sourceAddressPrefix: '*'
-          destinationAddressPrefix: 'Internet'
-          access: 'Allow'
-          priority: 140
           direction: 'Outbound'
         }
       }
