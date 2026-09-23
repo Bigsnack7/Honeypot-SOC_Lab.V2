@@ -208,7 +208,7 @@ resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
     displayName: 'Cowrie SSH Brute Force Detected'
     description: 'Flags source IPs with 6+ failed SSH login attempts against the Cowrie honeypot within 24 hours, catching both rapid and slow/evasive brute-force patterns.'
     severity: 'Medium'
-    enabled: true
+    enabled: false
     query: '''
       Cowrie_CL
       | extend Parsed = parse_json(RawData)
@@ -257,7 +257,7 @@ resource windowsBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01
     displayName: 'Windows RDP Brute Force Detected'
     description: 'Flags source IPs with 5+ failed RDP login attempts against the Windows honeypot within 5 minutes.'
     severity: 'Medium'
-    enabled: true
+    enabled: false
     query: '''
       SecurityEvent
       | where EventID == 4625
@@ -305,7 +305,7 @@ resource webDecoyScanningRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
     displayName: 'Web Decoy Sensitive Path Scanning Detected'
     description: 'Flags source IPs probing multiple honeytoken paths (wp-login.php, .env, admin) within 10 minutes.'
     severity: 'Medium'
-    enabled: true
+    enabled: false
     query: '''
       WebDecoy_CL
       | extend Parsed = parse_json(RawData)
