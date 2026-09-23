@@ -26,6 +26,7 @@ resource cowrieAlert 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = {
     description: 'Source IPs with 6+ failed SSH logins against the Cowrie honeypot in 24 hours (MITRE T1110).'
     severity: 2
     enabled: true
+    autoMitigate: false
     evaluationFrequency: 'PT1H'
     windowSize: 'P1D'
     muteActionsDuration: 'PT1H'
@@ -69,6 +70,7 @@ resource windowsAlert 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = {
     description: 'Source IPs with 5+ failed logons (4625) against the Windows honeypot in 5 minutes (MITRE T1110).'
     severity: 2
     enabled: true
+    autoMitigate: false
     evaluationFrequency: 'PT5M'
     windowSize: 'PT5M'
     muteActionsDuration: 'PT1H'
@@ -110,6 +112,7 @@ resource webAlert 'Microsoft.Insights/scheduledQueryRules@2022-06-15' = {
     description: 'Source IPs probing 3+ honeytoken paths within 10 minutes (MITRE T1595).'
     severity: 2
     enabled: true
+    autoMitigate: false
     evaluationFrequency: 'PT10M'
     windowSize: 'PT10M'
     muteActionsDuration: 'PT1H'
