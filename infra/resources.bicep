@@ -199,11 +199,141 @@ resource sentinelOnboarding 'Microsoft.SecurityInsights/onboardingStates@2023-02
   properties: {}
 }
 
-// M. Create Analytics Rule: Cowrie SSH Brute Force Detection
-module cowrieBruteForceRule './analytics-rule-cowrie-bruteforce.bicep' = {
-  name: 'cowrieBruteForceRuleDeployment-${uniqueString(deployment().name)}'
-  params: {
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+// M. Analytics Rule: Cowrie SSH Brute Force Detection
+resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('cowrie-bruteforce-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Cowrie SSH Brute Force Detected'
+    description: 'Flags source IPs with 6+ failed SSH login attempts against the Cowrie honeypot within 24 hours, catching both rapid and slow/evasive brute-force patterns.'
+    severity: 'Medium'
+    enabled: true
+    query: '''
+      Cowrie_CL
+      | extend Parsed = parse_json(RawData)
+      | where tostring(Parsed.eventid) == "cowrie.login.failed"
+      | extend SourceIP = tostring(Parsed.src_ip), Username = tostring(Parsed.username), Password = tostring(Parsed.password)
+      | summarize FailedAttempts = count(), Usernames = make_set(Username), Passwords = make_set(Password) by SourceIP
+      | where FailedAttempts >= 6
+    '''
+    queryFrequency: 'PT1H'
+    queryPeriod: 'P1D'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'CredentialAccess'
+    ]
+    techniques: [
+      'T1110'
+    ]
+    entityMappings: [
+      {
+        entityType: 'IP'
+        fieldMappings: [
+          {
+            identifier: 'Address'
+            columnName: 'SourceIP'
+          }
+        ]
+      }
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+  ]
+}
+
+// N. Analytics Rule: Windows RDP Brute Force Detection
+resource windowsBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('windows-bruteforce-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Windows RDP Brute Force Detected'
+    description: 'Flags source IPs with 5+ failed RDP login attempts against the Windows honeypot within 5 minutes.'
+    severity: 'Medium'
+    enabled: true
+    query: '''
+      SecurityEvent
+      | where EventID == 4625
+      | summarize FailedAttempts = count(), Accounts = make_set(TargetAccount) by IpAddress, bin(TimeGenerated, 5m)
+      | where FailedAttempts >= 5
+      | extend SourceIP = IpAddress
+    '''
+    queryFrequency: 'PT5M'
+    queryPeriod: 'PT5M'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'CredentialAccess'
+    ]
+    techniques: [
+      'T1110'
+    ]
+    entityMappings: [
+      {
+        entityType: 'IP'
+        fieldMappings: [
+          {
+            identifier: 'Address'
+            columnName: 'SourceIP'
+          }
+        ]
+      }
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+  ]
+}
+
+// O. Analytics Rule: Web Decoy Sensitive Path Scanning
+resource webDecoyScanningRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('webdecoy-scanning-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Web Decoy Sensitive Path Scanning Detected'
+    description: 'Flags source IPs probing multiple honeytoken paths (wp-login.php, .env, admin) within 10 minutes.'
+    severity: 'Medium'
+    enabled: true
+    query: '''
+      WebDecoy_CL
+      | extend Parsed = parse_json(RawData)
+      | where isnotempty(Parsed.honeytoken)
+      | summarize ProbedPaths = make_set(tostring(Parsed.path)), ProbeCount = count() by SourceIP = tostring(Parsed.src_ip), bin(TimeGenerated, 10m)
+      | where ProbeCount >= 3
+    '''
+    queryFrequency: 'PT10M'
+    queryPeriod: 'PT10M'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'Reconnaissance'
+    ]
+    techniques: [
+      'T1595'
+    ]
+    entityMappings: [
+      {
+        entityType: 'IP'
+        fieldMappings: [
+          {
+            identifier: 'Address'
+            columnName: 'SourceIP'
+          }
+        ]
+      }
+    ]
   }
   dependsOn: [
     sentinel
@@ -290,30 +420,6 @@ module webDecoy './web-app-decoy.bicep' = {
   }
 }
 
-// N. Create Analytics Rule: Windows RDP Brute Force Detection
-module windowsBruteForceRule './analytics-rule-windows-bruteforce.bicep' = {
-  name: 'windowsBruteForceRuleDeployment-${uniqueString(deployment().name)}'
-  params: {
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
-  }
-  dependsOn: [
-    sentinel
-    sentinelOnboarding
-  ]
-}
-
-// O. Create Analytics Rule: Web Decoy Sensitive Path Scanning
-module webDecoyScanningRule './analytics-rule-webdecoy-scanning.bicep' = {
-  name: 'webDecoyScanningRuleDeployment-${uniqueString(deployment().name)}'
-  params: {
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
-  }
-  dependsOn: [
-    sentinel
-    sentinelOnboarding
-  ]
-}
-
 // P. Deploy the Sentinel Workbook Dashboard
 module honeypotWorkbook './sentinel-workbook.bicep' = {
   name: 'honeypotWorkbookDeployment-${uniqueString(deployment().name)}'
@@ -326,4 +432,3 @@ module honeypotWorkbook './sentinel-workbook.bicep' = {
     sentinelOnboarding
   ]
 }
-
