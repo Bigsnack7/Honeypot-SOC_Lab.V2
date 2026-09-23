@@ -244,6 +244,7 @@ resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
   dependsOn: [
     sentinel
     sentinelOnboarding
+    cowrieTable
   ]
 }
 
@@ -291,6 +292,7 @@ resource windowsBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01
   dependsOn: [
     sentinel
     sentinelOnboarding
+    windowsDcr
   ]
 }
 
@@ -338,6 +340,7 @@ resource webDecoyScanningRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
   dependsOn: [
     sentinel
     sentinelOnboarding
+    webDecoyTable
   ]
 }
 
@@ -365,7 +368,7 @@ module windowsDecoy './windows-decoy.bicep' = {
 module cowrieTable './cowrie-table.bicep' = {
   name: 'cowrieTableDeployment-${uniqueString(deployment().name)}'
   params: {
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+    logAnalyticsWorkspaceName: law.name
   }
 }
 
@@ -396,7 +399,7 @@ module linuxDecoy './linux-ssh-decoy.bicep' = {
 module webDecoyTable './webdecoy-table.bicep' = {
   name: 'webDecoyTableDeployment-${uniqueString(deployment().name)}'
   params: {
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+    logAnalyticsWorkspaceName: law.name
   }
 }
 
