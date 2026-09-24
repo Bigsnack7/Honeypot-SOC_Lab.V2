@@ -1,0 +1,26 @@
+id: 5b1f3c0e-7a41-4d52-9c1a-2f6e8d0a1b04
+name: Windows Suspicious Process Creation
+description: Process creation (4688) of common attacker tools on the Windows honeypot.
+severity: High
+status: Available
+queryFrequency: 10m
+queryPeriod: 10m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+relevantTechniques:
+  - T1059
+query: |
+  SecurityEvent
+  | where EventID == 4688
+  | where NewProcessName has_any ("powershell.exe", "cmd.exe", "certutil.exe", "bitsadmin.exe", "mshta.exe", "wmic.exe")
+  | project TimeGenerated, Computer, Account, NewProcessName, ParentProcessName, CommandLine
+  | extend HostName = Computer
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: HostName
+        columnName: HostName
+kind: Scheduled
+version: 1.0.0
