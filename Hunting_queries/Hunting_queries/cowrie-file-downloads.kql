@@ -1,0 +1,4 @@
+Cowrie_CL
+| extend P = parse_json(RawData)
+| where tostring(P.eventid) has "file_download"
+| project TimeGenerated, SourceIP = tostring(P.src_ip), Url = tostring(P.url), Hash = tostring(P.shasum)
