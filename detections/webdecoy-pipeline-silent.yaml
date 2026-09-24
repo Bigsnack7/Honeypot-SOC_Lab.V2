@@ -1,0 +1,24 @@
+id: webdecoy-pipeline-silent
+name: Web Decoy Honeypot - No Data Received
+description: |
+  Fires when the WebDecoy_CL table has received no new events in the last
+  30 minutes. This detection was added after a 3-day silent outage where
+  the web decoy's Flask service crash-looped following a redeploy, with no
+  alert generated because VM heartbeat stayed healthy throughout.
+severity: Medium
+enabled: true
+query: |
+  WebDecoy_CL
+  | summarize Latest = max(TimeGenerated)
+  | where Latest < ago(30m)
+queryFrequency: PT15M
+queryPeriod: PT1H
+triggerOperator: GreaterThan
+triggerThreshold: 0
+tactics:
+  - Impact
+entityMappings: []
+incidentConfiguration:
+  createIncident: true
+  groupingConfiguration:
+    enabled: false
