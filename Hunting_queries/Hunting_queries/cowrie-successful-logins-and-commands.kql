@@ -1,0 +1,5 @@
+Cowrie_CL
+| extend P = parse_json(RawData)
+| where tostring(P.eventid) in ("cowrie.login.success", "cowrie.command.input")
+| project TimeGenerated, SourceIP = tostring(P.src_ip), Session = tostring(P.session), Event = tostring(P.eventid), Input = tostring(P.input)
+| order by Session asc, TimeGenerated asc
