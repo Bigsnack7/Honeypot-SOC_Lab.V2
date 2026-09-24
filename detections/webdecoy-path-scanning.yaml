@@ -1,0 +1,26 @@
+id: 5b1f3c0e-7a41-4d52-9c1a-2f6e8d0a1b05
+name: Web Decoy Sensitive Path Scanning Detected
+description: Source IPs probing 3+ honeytoken paths (wp-login.php, .env, admin) within 10 minutes.
+severity: Medium
+status: Available
+queryFrequency: 10m
+queryPeriod: 10m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Reconnaissance
+relevantTechniques:
+  - T1595
+query: |
+  WebDecoy_CL
+  | extend Parsed = parse_json(RawData)
+  | where isnotempty(Parsed.honeytoken)
+  | summarize ProbedPaths = make_set(tostring(Parsed.path)), ProbeCount = count() by SourceIP = tostring(Parsed.src_ip), bin(TimeGenerated, 10m)
+  | where ProbeCount >= 3
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIP
+kind: Scheduled
+version: 1.0.0
