@@ -1,0 +1,13 @@
+let ssh = Cowrie_CL
+    | extend P = parse_json(RawData)
+    | project TimeGenerated, SourceIP = tostring(P.src_ip), Source = "SSH";
+let web = WebDecoy_CL
+    | extend P = parse_json(RawData)
+    | project TimeGenerated, SourceIP = tostring(P.src_ip), Source = "Web";
+let rdp = SecurityEvent
+    | where EventID == 4625
+    | project TimeGenerated, SourceIP = IpAddress, Source = "RDP";
+union ssh, web, rdp
+| where isnotempty(SourceIP)
+| summarize Events = count(), Honeypots = make_set(Source) by SourceIP
+| top 20 by Events desc
