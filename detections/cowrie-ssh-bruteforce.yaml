@@ -1,0 +1,27 @@
+id: 5b1f3c0e-7a41-4d52-9c1a-2f6e8d0a1b01
+name: Cowrie SSH Brute Force Detected
+description: Source IPs with 6+ failed SSH logins against the Cowrie honeypot within 24 hours.
+severity: Medium
+status: Available
+queryFrequency: 1h
+queryPeriod: 1d
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1110
+query: |
+  Cowrie_CL
+  | extend Parsed = parse_json(RawData)
+  | where tostring(Parsed.eventid) == "cowrie.login.failed"
+  | extend SourceIP = tostring(Parsed.src_ip), Username = tostring(Parsed.username), Password = tostring(Parsed.password)
+  | summarize FailedAttempts = count(), Usernames = make_set(Username), Passwords = make_set(Password) by SourceIP
+  | where FailedAttempts >= 6
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIP
+kind: Scheduled
+version: 1.0.0
