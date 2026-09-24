@@ -1,0 +1,26 @@
+id: 5b1f3c0e-7a41-4d52-9c1a-2f6e8d0a1b02
+name: Cowrie Command Execution After Login
+description: An attacker logged in to the Cowrie honeypot and ran shell commands.
+severity: High
+status: Available
+queryFrequency: 15m
+queryPeriod: 15m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+relevantTechniques:
+  - T1059
+query: |
+  Cowrie_CL
+  | extend Parsed = parse_json(RawData)
+  | where tostring(Parsed.eventid) == "cowrie.command.input"
+  | extend SourceIP = tostring(Parsed.src_ip), Command = tostring(Parsed.input)
+  | summarize CommandCount = count(), Commands = make_set(Command, 20) by SourceIP
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIP
+kind: Scheduled
+version: 1.0.0
