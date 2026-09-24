@@ -1,0 +1,26 @@
+id: 5b1f3c0e-7a41-4d52-9c1a-2f6e8d0a1b03
+name: Windows RDP Brute Force Detected
+description: Source IPs with 5+ failed logons (4625) against the Windows honeypot within 5 minutes.
+severity: Medium
+status: Available
+queryFrequency: 5m
+queryPeriod: 5m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - CredentialAccess
+relevantTechniques:
+  - T1110
+query: |
+  SecurityEvent
+  | where EventID == 4625
+  | summarize FailedAttempts = count(), Accounts = make_set(TargetAccount) by IpAddress, bin(TimeGenerated, 5m)
+  | where FailedAttempts >= 5
+  | extend SourceIP = IpAddress
+entityMappings:
+  - entityType: IP
+    fieldMappings:
+      - identifier: Address
+        columnName: SourceIP
+kind: Scheduled
+version: 1.0.0
