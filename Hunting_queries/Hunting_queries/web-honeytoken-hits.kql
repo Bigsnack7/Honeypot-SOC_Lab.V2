@@ -1,0 +1,5 @@
+WebDecoy_CL
+| extend P = parse_json(RawData)
+| where isnotempty(P.honeytoken)
+| summarize Hits = count(), Sources = dcount(tostring(P.src_ip)) by Path = tostring(P.path)
+| order by Hits desc
