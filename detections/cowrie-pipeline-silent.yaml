@@ -1,0 +1,24 @@
+id: cowrie-pipeline-silent
+name: Cowrie Honeypot - No Data Received
+description: |
+  Fires when the Cowrie_CL table has received no new events in the last
+  30 minutes. Indicates the honeypot process, its host VM, or the log
+  collection pipeline (Azure Monitor Agent / DCR) may be down. VM heartbeat
+  alone does not catch this failure mode.
+severity: Medium
+enabled: true
+query: |
+  Cowrie_CL
+  | summarize Latest = max(TimeGenerated)
+  | where Latest < ago(30m)
+queryFrequency: PT15M
+queryPeriod: PT1H
+triggerOperator: GreaterThan
+triggerThreshold: 0
+tactics:
+  - Impact
+entityMappings: []
+incidentConfiguration:
+  createIncident: true
+  groupingConfiguration:
+    enabled: false
