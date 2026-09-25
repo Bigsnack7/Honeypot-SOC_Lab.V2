@@ -23,3 +23,4 @@ resource threatIntelConnector 'Microsoft.SecurityInsights/dataConnectors@2023-02
     }
   }
 }
+
