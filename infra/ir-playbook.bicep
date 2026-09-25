@@ -5,6 +5,7 @@ resource sentinelConnection 'Microsoft.Web/connections@2016-06-01' = {
   location: location
   properties: {
     displayName: 'azuresentinel-connection'
+    parameterValueType: 'Alternative'
     api: {
       id: subscriptionResourceId('Microsoft.Web/locations/managedApis', location, 'azuresentinel')
     }
