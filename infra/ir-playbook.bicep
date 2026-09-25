@@ -1,6 +1,6 @@
 param location string
 
-resource sentinelConnection 'Microsoft.Web/connections@2016-06-01' = {
+resource sentinelConnection 'Microsoft.Web/connections@2018-07-01-preview' = {
   name: 'azuresentinel-connection'
   location: location
   properties: {
