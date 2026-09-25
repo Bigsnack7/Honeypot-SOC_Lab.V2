@@ -583,6 +583,7 @@ resource incidentAutomationRule 'Microsoft.SecurityInsights/automationRules@2023
   dependsOn: [
     sentinel
     sentinelOnboarding
+    playbookSentinelResponderRole
   ]
 }
 // U. Grant the playbook's managed identity permission to comment on / update incidents
