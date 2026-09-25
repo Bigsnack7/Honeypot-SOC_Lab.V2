@@ -45,6 +45,9 @@ jobs:
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
           SENTINEL_PRINCIPAL_ID: ${{ secrets.SENTINEL_PRINCIPAL_ID }}
 
+      - name: Debug Parameters File
+        run: cat params.json
+
       - name: Deploy Base Infrastructure via Bicep
         uses: azure/arm-deploy@v2
         with:
