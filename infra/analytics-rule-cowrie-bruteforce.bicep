@@ -18,7 +18,7 @@ resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
       | extend Parsed = parse_json(RawData)
       | where tostring(Parsed.eventid) == "cowrie.login.failed"
       | extend SourceIP = tostring(Parsed.src_ip), Username = tostring(Parsed.username), Password = tostring(Parsed.password)
-      | summarize FailedAttempts = count(), Usernames = make_set(Username), Passwords = make_set(Password) by SourceIP
+      | summarize FailedAttempts = count(), Usernames = make_set(Username), Passwords = make_set(Password), AnyUsername = any(Username) by SourceIP
       | where FailedAttempts >= 6
     '''
     queryFrequency: 'PT1H'
@@ -48,7 +48,7 @@ resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
         fieldMappings: [
           {
             identifier: 'Name'
-            columnName: 'Usernames'
+            columnName: 'AnyUsername'
           }
         ]
       }
