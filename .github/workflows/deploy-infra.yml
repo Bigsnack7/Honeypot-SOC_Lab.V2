@@ -33,12 +33,15 @@ jobs:
           cat <<EOF > params.json
           {
             "adminPassword": { "value": "$ADMIN_PASSWORD" },
-            "sshPublicKey": { "value": "$SSH_PUBLIC_KEY" }
+            "sshPublicKey": { "value": "$SSH_PUBLIC_KEY" },
+            "alertEmail": { "value": "$ALERT_EMAIL" },
+            "allowProvisioningEgress": { "value": false }
           }
           EOF
         env:
           ADMIN_PASSWORD: ${{ secrets.VM_ADMIN_PASSWORD }}
           SSH_PUBLIC_KEY: ${{ secrets.VM_SSH_PUBLIC_KEY }}
+          ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
 
       - name: Deploy Base Infrastructure via Bicep
         uses: azure/arm-deploy@v2
