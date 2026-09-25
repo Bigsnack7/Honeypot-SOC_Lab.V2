@@ -524,3 +524,13 @@ module honeypotWorkbook './sentinel-workbook.bicep' = {
 // Q. Azure Monitor log alerts (substitute for Sentinel analytics rules)
 module detectionAlerts './detection-alerts.bicep' = {
   name: 'detectionAlertsDeployment-${uniqueString(deployment().name)}'
+  params: {
+    location: location
+    workspaceId: law.id
+    alertEmail: alertEmail
+  }
+  dependsOn: [
+    cowrieTable
+    webDecoyTable
+  ]
+}
