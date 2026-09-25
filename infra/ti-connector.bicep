@@ -15,6 +15,10 @@ resource threatIntelConnector 'Microsoft.SecurityInsights/dataConnectors@2023-02
         lookbackPeriod: '7d'
         state: 'Enabled'
       }
+      bingSafetyPhishingURL: {
+        lookbackPeriod: '7d'
+        state: 'Enabled'
+      }
     }
   }
 }
