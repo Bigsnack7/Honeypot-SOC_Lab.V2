@@ -6,7 +6,7 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existin
 
 resource webDecoyScanningRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
   scope: workspace
-  name: guid('webdecoy-scanning-rule')
+  name: guid(resourceGroup().id, 'webdecoy-scanning-rule')
   kind: 'Scheduled'
   properties: {
     displayName: 'Web Decoy Sensitive Path Scanning Detected'
@@ -43,5 +43,14 @@ resource webDecoyScanningRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
         ]
       }
     ]
+    incidentConfiguration: {
+      createIncident: true
+      groupingConfiguration: {
+        enabled: true
+        reopenClosedIncident: false
+        lookbackDuration: 'PT1H'
+        matchingMethod: 'AnyAlert'
+      }
+    }
   }
 }
