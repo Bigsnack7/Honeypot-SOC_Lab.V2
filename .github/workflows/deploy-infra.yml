@@ -35,13 +35,15 @@ jobs:
             "adminPassword": { "value": "$ADMIN_PASSWORD" },
             "sshPublicKey": { "value": "$SSH_PUBLIC_KEY" },
             "alertEmail": { "value": "$ALERT_EMAIL" },
-            "allowProvisioningEgress": { "value": false }
+            "allowProvisioningEgress": { "value": false },
+            "sentinelPrincipalId": { "value": "$SENTINEL_PRINCIPAL_ID" }
           }
           EOF
         env:
           ADMIN_PASSWORD: ${{ secrets.VM_ADMIN_PASSWORD }}
           SSH_PUBLIC_KEY: ${{ secrets.VM_SSH_PUBLIC_KEY }}
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
+          SENTINEL_PRINCIPAL_ID: ${{ secrets.SENTINEL_PRINCIPAL_ID }}
 
       - name: Deploy Base Infrastructure via Bicep
         uses: azure/arm-deploy@v2
