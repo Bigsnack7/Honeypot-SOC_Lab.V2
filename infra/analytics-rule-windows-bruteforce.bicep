@@ -6,7 +6,7 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existin
 
 resource windowsBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
   scope: workspace
-  name: guid('windows-bruteforce-rule')
+  name: guid(resourceGroup().id, 'windows-bruteforce-rule')
   kind: 'Scheduled'
   properties: {
     displayName: 'Windows RDP Brute Force Detected'
@@ -42,6 +42,24 @@ resource windowsBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01
           }
         ]
       }
+      {
+        entityType: 'Account'
+        fieldMappings: [
+          {
+            identifier: 'Name'
+            columnName: 'Accounts'
+          }
+        ]
+      }
     ]
+    incidentConfiguration: {
+      createIncident: true
+      groupingConfiguration: {
+        enabled: true
+        reopenClosedIncident: false
+        lookbackDuration: 'PT1H'
+        matchingMethod: 'AnyAlert'
+      }
+    }
   }
 }
