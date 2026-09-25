@@ -521,12 +521,10 @@ module honeypotWorkbook './sentinel-workbook.bicep' = {
   ]
 }
 
-// Q. Azure Monitor log alerts (substitute for Sentinel analytics rules)
+// Q. Action group for future SOAR notifications (legacy scheduledQueryRules removed - superseded by native Sentinel analytics rules above)
 module detectionAlerts './detection-alerts.bicep' = {
   name: 'detectionAlertsDeployment-${uniqueString(deployment().name)}'
   params: {
-    location: location
-    workspaceId: law.id
     alertEmail: alertEmail
   }
   dependsOn: [
@@ -534,5 +532,3 @@ module detectionAlerts './detection-alerts.bicep' = {
     webDecoyTable
   ]
 }
-
-
