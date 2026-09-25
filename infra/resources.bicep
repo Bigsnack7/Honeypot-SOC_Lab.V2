@@ -585,3 +585,16 @@ resource incidentAutomationRule 'Microsoft.SecurityInsights/automationRules@2023
     sentinelOnboarding
   ]
 }
+// U. Grant the playbook's managed identity permission to comment on / update incidents
+resource playbookSentinelResponderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, 'playbook-incident-enrichment-notify', 'Microsoft Sentinel Responder')
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3e150937-b8fe-4cfb-8069-0eaf05ecd056')
+    principalId: irPlaybook.outputs.playbookPrincipalId
+    principalType: 'ServicePrincipal'
+  }
+  dependsOn: [
+    irPlaybook
+  ]
+}
