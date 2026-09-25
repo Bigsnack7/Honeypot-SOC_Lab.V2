@@ -1,4 +1,5 @@
 param logAnalyticsWorkspaceName string
+param deploymentTime string = utcNow()
 
 resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existing = {
   name: logAnalyticsWorkspaceName
@@ -12,11 +13,11 @@ resource threatIntelConnector 'Microsoft.SecurityInsights/dataConnectors@2023-02
     tenantId: subscription().tenantId
     dataTypes: {
       microsoftEmergingThreatFeed: {
-        lookbackPeriod: '7d'
+        lookbackPeriod: dateTimeAdd(deploymentTime, '-P7D')
         state: 'Enabled'
       }
       bingSafetyPhishingURL: {
-        lookbackPeriod: '7d'
+        lookbackPeriod: dateTimeAdd(deploymentTime, '-P7D')
         state: 'Enabled'
       }
     }
