@@ -25,6 +25,7 @@ resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
 }
 
 // 2. Call the resource group-level nested module to deploy all structural components
+// (this now includes the Sentinel-native analytics rules directly inside resources.bicep)
 module labResources './resources.bicep' = {
   scope: resourceGroup(rg.name)
   name: 'labResourcesDeployment-${uniqueString(rg.id, deployment().name)}'
@@ -38,38 +39,4 @@ module labResources './resources.bicep' = {
     adminPassword: adminPassword
     sshPublicKey: sshPublicKey
   }
-}
-
-// 3. Deploy the Sentinel-native analytics rules once the workspace exists
-module cowrieBruteForceRule './analytics-rule-cowrie-bruteforce.bicep' = {
-  scope: resourceGroup(rg.name)
-  name: 'cowrieBruteForceRuleDeployment-${uniqueString(rg.id, deployment().name)}'
-  params: {
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
-  }
-  dependsOn: [
-    labResources
-  ]
-}
-
-module webDecoyScanningRule './analytics-rule-webdecoy-scanning.bicep' = {
-  scope: resourceGroup(rg.name)
-  name: 'webDecoyScanningRuleDeployment-${uniqueString(rg.id, deployment().name)}'
-  params: {
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
-  }
-  dependsOn: [
-    labResources
-  ]
-}
-
-module windowsBruteForceRule './analytics-rule-windows-bruteforce.bicep' = {
-  scope: resourceGroup(rg.name)
-  name: 'windowsBruteForceRuleDeployment-${uniqueString(rg.id, deployment().name)}'
-  params: {
-    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
-  }
-  dependsOn: [
-    labResources
-  ]
 }
