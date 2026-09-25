@@ -9,8 +9,23 @@ runcmd:
         break
       fi
     done
+
+  # Wait for real outbound connectivity before touching apt.
+  # Root cause of the 2026-09-21 outage: apt ran before the network path
+  # was actually usable, combined with the NSG only allowing this during
+  # provisioning (see allowProvisioningEgress parameter). Without this
+  # wait, pip/apt failed partway, leaving a broken venv that systemd could
+  # not exec - see INCIDENT_2026-09-21_provisioning_failures.md
+  - |
+    for i in $(seq 1 60); do
+      if curl -sf -m 5 -o /dev/null http://azure.archive.ubuntu.com/ubuntu/; then
+        break
+      fi
+      sleep 5
+    done
+
   - apt-get update
-  - DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip python3-venv libssl-dev libffi-dev build-essential libpython3-dev python3-minimal authbind
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y -o Acquire::Retries=5 python3-pip python3-venv libssl-dev libffi-dev build-essential libpython3-dev python3-minimal authbind
   - useradd -m -s /bin/bash cowrie
   - mkdir -p /etc/authbind/byport
   - touch /etc/authbind/byport/22
@@ -24,5 +39,41 @@ runcmd:
   - su - cowrie -c "cd /home/cowrie/my-honeypot && source cowrie-env/bin/activate && pip install --upgrade pip && pip install cowrie"
   - su - cowrie -c "cd /home/cowrie/my-honeypot && source cowrie-env/bin/activate && cowrie init"
   - sed -i 's/^listen_endpoints = tcp:2222.*/listen_endpoints = tcp:22:interface=0.0.0.0/' /home/cowrie/my-honeypot/etc/cowrie.cfg
-  - su - cowrie -c "cd /home/cowrie/my-honeypot && source cowrie-env/bin/activate && authbind --deep cowrie start"
 
+  # Allow Azure Monitor Agent (runs as `syslog`) to traverse /home/cowrie
+  # (mode 750) to read cowrie.json. Missing this caused logs to stop
+  # reaching Sentinel with zero error on either side - see
+  # INCIDENT_2026-09-21_provisioning_failures.md
+  - usermod -aG cowrie syslog
+
+  # Systemd unit so Cowrie survives reboots and crashes.
+  # The original script only ran `cowrie start` once at boot with no
+  # supervision - any reboot (including Azure host maintenance) silently
+  # killed the honeypot with nothing to restart it.
+  - |
+    cat <<'SERVICEEOF' > /etc/systemd/system/cowrie.service
+    [Unit]
+    Description=Cowrie SSH honeypot
+    After=network-online.target
+    Wants=network-online.target
+
+    [Service]
+    Type=forking
+    User=cowrie
+    Group=cowrie
+    WorkingDirectory=/home/cowrie/my-honeypot
+    Environment=PATH=/home/cowrie/my-honeypot/cowrie-env/bin:/usr/local/bin:/usr/bin:/bin
+    PIDFile=/home/cowrie/my-honeypot/var/run/cowrie.pid
+    ExecStartPre=/bin/rm -f /home/cowrie/my-honeypot/var/run/cowrie.pid
+    ExecStart=/usr/bin/authbind --deep /home/cowrie/my-honeypot/cowrie-env/bin/cowrie start
+    Restart=always
+    RestartSec=5
+
+    [Install]
+    WantedBy=multi-user.target
+    SERVICEEOF
+  - systemctl daemon-reload
+  - systemctl reset-failed cowrie
+  - systemctl enable cowrie
+  - systemctl start cowrie
+  - systemctl restart azuremonitoragent
