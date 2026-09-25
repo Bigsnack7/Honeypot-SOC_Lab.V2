@@ -58,6 +58,52 @@ var workbookContent = '''
         "resourceType": "microsoft.operationalinsights/workspaces",
         "visualization": "barchart"
       }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "SecurityAlert\n| mv-expand Tactics\n| mv-expand Techniques\n| summarize Count = count() by Tactic = tostring(Tactics), Technique = tostring(Techniques)\n| sort by Count desc",
+        "size": 0,
+        "title": "MITRE ATT&CK Technique Heat Map",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "Count",
+              "formatter": 18,
+              "formatOptions": {
+                "palette": "redGreen",
+                "aggregation": "Sum"
+              }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "union\n(Cowrie_CL | extend Parsed = parse_json(RawData) | extend SourceIP = tostring(Parsed.src_ip)),\n(WebDecoy_CL | extend Parsed = parse_json(RawData) | extend SourceIP = tostring(Parsed.src_ip)),\n(SecurityEvent | where EventID == 4625 | extend SourceIP = IpAddress)\n| where isnotempty(SourceIP)\n| extend GeoInfo = geo_info_from_ip_address(SourceIP)\n| extend country = tostring(GeoInfo.country), latitude = todouble(GeoInfo.latitude), longitude = todouble(GeoInfo.longitude)\n| where isnotempty(country)\n| summarize Count = count() by SourceIP, country, latitude, longitude",
+        "size": 0,
+        "title": "Attack Geometry Map",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "map",
+        "mapSettings": {
+          "locInfo": "LatLong",
+          "locInfoLatitude": "latitude",
+          "locInfoLongitude": "longitude",
+          "sizeSettings": "Count",
+          "sizeAggregation": "Sum",
+          "labelSettings": "country",
+          "legendMetric": "Count",
+          "legendAggregation": "Sum"
+        }
+      }
     }
   ],
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
@@ -76,5 +122,3 @@ resource honeypotWorkbook 'Microsoft.Insights/workbooks@2022-04-01' = {
     version: '1.0'
   }
 }
-
-
