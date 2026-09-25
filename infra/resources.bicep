@@ -5,6 +5,12 @@ param nsgName string
 param vnetName string
 param logAnalyticsWorkspaceName string
 
+@description('Email address to receive detection alert notifications.')
+param alertEmail string
+
+@description('Set to true only during initial provisioning to allow package installs on decoy VMs. Redeploy with false once cloud-init has completed.')
+param allowProvisioningEgress bool = false
+
 @secure()
 param adminPassword string
 
@@ -17,7 +23,7 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
   params: {
     name: nsgName
     location: location
-    securityRules: [
+    securityRules: concat([
       {
         name: 'Allow-Inbound-RDP'
         properties: {
@@ -136,7 +142,24 @@ module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
           direction: 'Outbound'
         }
       }
-    ]
+    ], allowProvisioningEgress ? [
+      {
+        name: 'Temp-Allow-Outbound-Provisioning'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRanges: [
+            '80'
+            '443'
+          ]
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: 'Internet'
+          access: 'Allow'
+          priority: 140
+          direction: 'Outbound'
+        }
+      }
+    ] : [])
   }
 }
 
@@ -341,6 +364,70 @@ resource webDecoyScanningRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
   ]
 }
 
+// M2. Analytics Rule: Cowrie Pipeline Health (added after 2026-09-21 incident)
+resource cowriePipelineSilentRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('cowrie-pipeline-silent-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Cowrie Honeypot - No Data Received'
+    description: 'Fires when Cowrie_CL has received no events in 30+ minutes. VM heartbeat alone does not catch a crashed or misconfigured honeypot process - see INCIDENT_2026-09-21_provisioning_failures.md'
+    severity: 'Medium'
+    enabled: false
+    query: '''
+      Cowrie_CL
+      | summarize Latest = max(TimeGenerated)
+      | where Latest < ago(30m)
+    '''
+    queryFrequency: 'PT15M'
+    queryPeriod: 'PT1H'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'Impact'
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+    cowrieTable
+  ]
+}
+
+// O2. Analytics Rule: WebDecoy Pipeline Health (added after 2026-09-21 incident)
+resource webDecoyPipelineSilentRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('webdecoy-pipeline-silent-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Web Decoy Honeypot - No Data Received'
+    description: 'Fires when WebDecoy_CL has received no events in 30+ minutes. Added after a 3-day silent outage where the web decoy crash-looped with no alert generated - see INCIDENT_2026-09-21_provisioning_failures.md'
+    severity: 'Medium'
+    enabled: false
+    query: '''
+      WebDecoy_CL
+      | summarize Latest = max(TimeGenerated)
+      | where Latest < ago(30m)
+    '''
+    queryFrequency: 'PT15M'
+    queryPeriod: 'PT1H'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'Impact'
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+    webDecoyTable
+  ]
+}
+
 // L. Create the Data Collection Rule for Windows (Security + Sysmon)
 module windowsDcr './windows-dcr.bicep' = {
   name: 'windowsDcrDeployment-${uniqueString(deployment().name)}'
@@ -417,6 +504,7 @@ module webDecoy './web-app-decoy.bicep' = {
   params: {
     sshPublicKey: sshPublicKey
     dcrId: webDecoyDcr.outputs.dcrId
+    allowProvisioningEgress: allowProvisioningEgress
   }
 }
 
@@ -432,16 +520,7 @@ module honeypotWorkbook './sentinel-workbook.bicep' = {
     sentinelOnboarding
   ]
 }
+
 // Q. Azure Monitor log alerts (substitute for Sentinel analytics rules)
 module detectionAlerts './detection-alerts.bicep' = {
   name: 'detectionAlertsDeployment-${uniqueString(deployment().name)}'
-  params: {
-    location: location
-    workspaceId: law.id
-    alertEmail: 'youngfrezy16@gmail.com'
-  }
-  dependsOn: [
-    cowrieTable
-    webDecoyTable
-  ]
-}
