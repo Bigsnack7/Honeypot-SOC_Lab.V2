@@ -550,7 +550,6 @@ module irPlaybook './ir-playbook.bicep' = {
   name: 'irPlaybookDeployment-${uniqueString(deployment().name)}'
   params: {
     location: location
-    actionGroupEmail: alertEmail
   }
   dependsOn: [
     sentinel
@@ -584,6 +583,5 @@ resource incidentAutomationRule 'Microsoft.SecurityInsights/automationRules@2023
   dependsOn: [
     sentinel
     sentinelOnboarding
-    irPlaybook
   ]
 }
