@@ -17,6 +17,9 @@ param adminPassword string
 @secure()
 param sshPublicKey string
 
+@description('Object ID of the Azure Security Insights (Microsoft Sentinel) service principal in this tenant.')
+param sentinelPrincipalId string
+
 // A. Deploy the Network Security Group via Azure Verified Modules (AVM)
 module nsg 'br/public:avm/res/network/network-security-group:0.5.0' = {
   name: 'nsgDeployment-${uniqueString(deployment().name)}'
@@ -584,8 +587,10 @@ resource incidentAutomationRule 'Microsoft.SecurityInsights/automationRules@2023
     sentinel
     sentinelOnboarding
     playbookSentinelResponderRole
+    sentinelAutomationContributorRole
   ]
 }
+
 // U. Grant the playbook's managed identity permission to comment on / update incidents
 resource playbookSentinelResponderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   name: guid(resourceGroup().id, 'playbook-incident-enrichment-notify', 'Microsoft Sentinel Responder')
@@ -598,4 +603,15 @@ resource playbookSentinelResponderRole 'Microsoft.Authorization/roleAssignments@
   dependsOn: [
     irPlaybook
   ]
+}
+
+// V. Grant Microsoft Sentinel's own service principal permission to run playbooks in this resource group
+resource sentinelAutomationContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
+  name: guid(resourceGroup().id, 'Microsoft Sentinel Automation Contributor')
+  scope: resourceGroup()
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f4c81013-99ee-4d62-a7ee-b3f1f648599a')
+    principalId: sentinelPrincipalId
+    principalType: 'ServicePrincipal'
+  }
 }
