@@ -1,10 +1,13 @@
 param location string = 'eastus'
 
+@description('Set to true only during initial provisioning to allow package installs. Redeploy with false once cloud-init has completed.')
+param allowProvisioningEgress bool = false
+
 resource webNsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
   name: 'nsg-web-decoy'
   location: location
   properties: {
-    securityRules: [
+    securityRules: concat([
       {
         name: 'Allow-Inbound-HTTP'
         properties: {
@@ -84,7 +87,24 @@ resource webNsg 'Microsoft.Network/networkSecurityGroups@2023-11-01' = {
           direction: 'Outbound'
         }
       }
-    ]
+    ], allowProvisioningEgress ? [
+      {
+        name: 'Temp-Allow-Outbound-Provisioning'
+        properties: {
+          protocol: 'Tcp'
+          sourcePortRange: '*'
+          destinationPortRanges: [
+            '80'
+            '443'
+          ]
+          sourceAddressPrefix: '*'
+          destinationAddressPrefix: 'Internet'
+          access: 'Allow'
+          priority: 140
+          direction: 'Outbound'
+        }
+      }
+    ] : [])
   }
 }
 
