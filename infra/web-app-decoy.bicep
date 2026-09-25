@@ -2,6 +2,9 @@ param location string = 'eastus'
 param adminUsername string = 'azureuser'
 param dcrId string
 
+@description('Set to true only for the first deployment or a full rebuild so the web decoy VM can reach package mirrors during cloud-init. Redeploy with false afterward.')
+param allowProvisioningEgress bool = false
+
 @secure()
 param sshPublicKey string
 
@@ -12,6 +15,7 @@ module network './web-decoy-network.bicep' = {
   name: 'webDecoyNetworkDeployment-${uniqueString(deployment().name)}'
   params: {
     location: location
+    allowProvisioningEgress: allowProvisioningEgress
   }
 }
 
