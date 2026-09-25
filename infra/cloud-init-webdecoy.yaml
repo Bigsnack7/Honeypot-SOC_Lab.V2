@@ -9,8 +9,23 @@ runcmd:
         break
       fi
     done
+
+  # Wait for real outbound connectivity before touching apt.
+  # Root cause of the 2026-09-21 outage: apt ran before the network path
+  # was actually usable, combined with the NSG only allowing this during
+  # provisioning (see allowProvisioningEgress parameter). This is what
+  # caused a 3-day silent outage - see
+  # INCIDENT_2026-09-21_provisioning_failures.md
+  - |
+    for i in $(seq 1 60); do
+      if curl -sf -m 5 -o /dev/null http://azure.archive.ubuntu.com/ubuntu/; then
+        break
+      fi
+      sleep 5
+    done
+
   - apt-get update
-  - DEBIAN_FRONTEND=noninteractive apt-get install -y python3-pip python3-venv
+  - DEBIAN_FRONTEND=noninteractive apt-get install -y -o Acquire::Retries=5 python3-pip python3-venv authbind
   - useradd -m -s /bin/bash webdecoy
   - su - webdecoy -c "python3 -m venv /home/webdecoy/venv"
   - su - webdecoy -c "source /home/webdecoy/venv/bin/activate && pip install --upgrade pip && pip install flask"
@@ -91,23 +106,33 @@ runcmd:
   - touch /etc/authbind/byport/80
   - chown webdecoy:webdecoy /etc/authbind/byport/80
   - chmod 770 /etc/authbind/byport/80
-  - apt-get install -y authbind
+
+  # Allow Azure Monitor Agent (runs as `syslog`) to traverse /home/webdecoy
+  # (mode 750) to read access.json. Missing this caused a silent 3-day
+  # outage where the app was crash-looping but no log data existed to
+  # even reveal an error - see INCIDENT_2026-09-21_provisioning_failures.md
+  - usermod -aG webdecoy syslog
+
   - |
     cat <<'SERVICEEOF' > /etc/systemd/system/webdecoy.service
     [Unit]
     Description=Web App Decoy
-    After=network.target
+    After=network-online.target
+    Wants=network-online.target
 
     [Service]
     User=webdecoy
+    Group=webdecoy
     WorkingDirectory=/home/webdecoy/app
     ExecStart=/usr/bin/authbind --deep /home/webdecoy/venv/bin/python3 /home/webdecoy/app/decoy.py
     Restart=always
+    RestartSec=5
 
     [Install]
     WantedBy=multi-user.target
     SERVICEEOF
   - systemctl daemon-reload
+  - systemctl reset-failed webdecoy
   - systemctl enable webdecoy
   - systemctl start webdecoy
-
+  - systemctl restart azuremonitoragent
