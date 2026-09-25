@@ -6,7 +6,7 @@ resource workspace 'Microsoft.OperationalInsights/workspaces@2023-09-01' existin
 
 resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
   scope: workspace
-  name: guid('cowrie-bruteforce-rule')
+  name: guid(resourceGroup().id, 'cowrie-bruteforce-rule')
   kind: 'Scheduled'
   properties: {
     displayName: 'Cowrie SSH Brute Force Detected'
@@ -43,6 +43,24 @@ resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
           }
         ]
       }
+      {
+        entityType: 'Account'
+        fieldMappings: [
+          {
+            identifier: 'Name'
+            columnName: 'Usernames'
+          }
+        ]
+      }
     ]
+    incidentConfiguration: {
+      createIncident: true
+      groupingConfiguration: {
+        enabled: true
+        reopenClosedIncident: false
+        lookbackDuration: 'PT1H'
+        matchingMethod: 'AnyAlert'
+      }
+    }
   }
 }
