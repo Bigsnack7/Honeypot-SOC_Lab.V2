@@ -39,5 +39,3 @@ module labResources './resources.bicep' = {
     sshPublicKey: sshPublicKey
   }
 }
-
-
