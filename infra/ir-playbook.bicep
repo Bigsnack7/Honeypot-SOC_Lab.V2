@@ -86,3 +86,4 @@ resource irPlaybook 'Microsoft.Logic/workflows@2019-05-01' = {
 
 output playbookResourceId string = irPlaybook.id
 output playbookPrincipalId string = irPlaybook.identity.principalId
+
