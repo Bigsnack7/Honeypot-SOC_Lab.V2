@@ -532,3 +532,14 @@ module detectionAlerts './detection-alerts.bicep' = {
     webDecoyTable
   ]
 }
+// R. Deploy the built-in Microsoft Threat Intelligence connector
+module tiConnector './ti-connector.bicep' = {
+  name: 'tiConnectorDeployment-${uniqueString(deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: law.name
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+  ]
+}
