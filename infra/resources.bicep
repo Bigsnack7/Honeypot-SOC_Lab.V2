@@ -532,6 +532,7 @@ module detectionAlerts './detection-alerts.bicep' = {
     webDecoyTable
   ]
 }
+
 // R. Deploy the built-in Microsoft Threat Intelligence connector
 module tiConnector './ti-connector.bicep' = {
   name: 'tiConnectorDeployment-${uniqueString(deployment().name)}'
@@ -541,5 +542,48 @@ module tiConnector './ti-connector.bicep' = {
   dependsOn: [
     sentinel
     sentinelOnboarding
+  ]
+}
+
+// S. Deploy the incident enrichment/notification playbook (SOAR)
+module irPlaybook './ir-playbook.bicep' = {
+  name: 'irPlaybookDeployment-${uniqueString(deployment().name)}'
+  params: {
+    location: location
+    actionGroupEmail: alertEmail
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+  ]
+}
+
+// T. Wire the playbook to run automatically when a new incident is created
+resource incidentAutomationRule 'Microsoft.SecurityInsights/automationRules@2023-11-01' = {
+  scope: law
+  name: guid(resourceGroup().id, 'run-ir-playbook-on-incident-creation')
+  properties: {
+    displayName: 'Run IR playbook on incident creation'
+    order: 1
+    triggeringLogic: {
+      isEnabled: true
+      triggersOn: 'Incidents'
+      triggersWhen: 'Created'
+    }
+    actions: [
+      {
+        order: 1
+        actionType: 'RunPlaybook'
+        actionConfiguration: {
+          logicAppResourceId: irPlaybook.outputs.playbookResourceId
+          tenantId: subscription().tenantId
+        }
+      }
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+    irPlaybook
   ]
 }
