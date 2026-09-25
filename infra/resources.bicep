@@ -534,3 +534,5 @@ module detectionAlerts './detection-alerts.bicep' = {
     webDecoyTable
   ]
 }
+
+
