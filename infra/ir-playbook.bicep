@@ -1,5 +1,4 @@
 param location string
-param actionGroupEmail string
 
 resource sentinelConnection 'Microsoft.Web/connections@2016-06-01' = {
   name: 'azuresentinel-connection'
@@ -84,14 +83,5 @@ resource irPlaybook 'Microsoft.Logic/workflows@2019-05-01' = {
   }
 }
 
-// Grant the playbook's managed identity permission to read/update incidents
-resource sentinelResponderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, 'ir-playbook-sentinel-responder')
-  properties: {
-    principalId: irPlaybook.identity.principalId
-    principalType: 'ServicePrincipal'
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'ab8e14d6-4a74-4a29-9ba8-549422addade') // Microsoft Sentinel Responder
-  }
-}
-
 output playbookResourceId string = irPlaybook.id
+output playbookPrincipalId string = irPlaybook.identity.principalId
