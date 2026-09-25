@@ -1,5 +1,3 @@
-param location string
-param workspaceId string
 param alertEmail string
 
 resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
