@@ -6,6 +6,12 @@ param nsgName string = 'nsg-honeypot-soc'
 param vnetName string = 'vnet-honeypot-soc'
 param logAnalyticsWorkspaceName string = 'law-honeypot-soc'
 
+@description('Email address to receive detection alert notifications.')
+param alertEmail string
+
+@description('Set to true only for the first deployment (or a full VM rebuild) so decoy VMs can reach package mirrors during cloud-init. Redeploy with false afterward.')
+param allowProvisioningEgress bool = false
+
 @secure()
 param adminPassword string
 
@@ -27,9 +33,9 @@ module labResources './resources.bicep' = {
     nsgName: nsgName
     vnetName: vnetName
     logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+    alertEmail: alertEmail
+    allowProvisioningEgress: allowProvisioningEgress
     adminPassword: adminPassword
     sshPublicKey: sshPublicKey
   }
 }
-
-
