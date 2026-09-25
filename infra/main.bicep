@@ -44,3 +44,4 @@ module labResources './resources.bicep' = {
     sentinelPrincipalId: sentinelPrincipalId
   }
 }
+
