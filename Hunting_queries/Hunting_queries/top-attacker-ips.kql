@@ -1,13 +1,15 @@
-let ssh = Cowrie_CL
-    | extend P = parse_json(RawData)
-    | project TimeGenerated, SourceIP = tostring(P.src_ip), Source = "SSH";
-let web = WebDecoy_CL
-    | extend P = parse_json(RawData)
-    | project TimeGenerated, SourceIP = tostring(P.src_ip), Source = "Web";
-let rdp = SecurityEvent
-    | where EventID == 4625
-    | project TimeGenerated, SourceIP = IpAddress, Source = "RDP";
-union ssh, web, rdp
+let LookbackPeriod = 7d;
+let ThreatIndicators = ThreatIntelligenceIndicator
+    | where TimeGenerated >= ago(LookbackPeriod)
+    | where isnotempty(NetworkIP)
+    | summarize LatestIndicatorTime = arg_max(TimeGenerated, ThreatType, Confidence, Description) by NetworkIP;
+union
+(Cowrie_CL | extend Parsed = parse_json(RawData) | extend SourceIP = tostring(Parsed.src_ip), Source = "Cowrie SSH"),
+(WebDecoy_CL | extend Parsed = parse_json(RawData) | extend SourceIP = tostring(Parsed.src_ip), Source = "Web Decoy"),
+(SecurityEvent | where EventID == 4625 | extend SourceIP = IpAddress, Source = "Windows RDP")
 | where isnotempty(SourceIP)
-| summarize Events = count(), Honeypots = make_set(Source) by SourceIP
-| top 20 by Events desc
+| summarize Count = count(), Sources = make_set(Source), LastSeen = max(TimeGenerated) by SourceIP
+| join kind=leftouter (ThreatIndicators) on $left.SourceIP == $right.NetworkIP
+| project SourceIP, Count, Sources, LastSeen, IsKnownThreat = iff(isnotempty(ThreatType), true, false), ThreatType, Confidence, Description
+| sort by IsKnownThreat desc, Count desc
+| take 25
