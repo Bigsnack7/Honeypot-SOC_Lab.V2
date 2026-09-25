@@ -18,6 +18,9 @@ param adminPassword string
 @secure()
 param sshPublicKey string
 
+@description('Object ID of the Azure Security Insights (Microsoft Sentinel) service principal in this tenant.')
+param sentinelPrincipalId string
+
 // 1. Provision the Resource Group Container at the subscription level
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
@@ -38,5 +41,6 @@ module labResources './resources.bicep' = {
     allowProvisioningEgress: allowProvisioningEgress
     adminPassword: adminPassword
     sshPublicKey: sshPublicKey
+    sentinelPrincipalId: sentinelPrincipalId
   }
 }
