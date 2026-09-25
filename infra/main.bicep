@@ -39,3 +39,37 @@ module labResources './resources.bicep' = {
     sshPublicKey: sshPublicKey
   }
 }
+
+// 3. Deploy the Sentinel-native analytics rules once the workspace exists
+module cowrieBruteForceRule './infra/analytics-rule-cowrie-bruteforce.bicep' = {
+  scope: resourceGroup(rg.name)
+  name: 'cowrieBruteForceRuleDeployment-${uniqueString(rg.id, deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+  dependsOn: [
+    labResources
+  ]
+}
+
+module webDecoyScanningRule './infra/analytics-rule-webdecoy-scanning.bicep' = {
+  scope: resourceGroup(rg.name)
+  name: 'webDecoyScanningRuleDeployment-${uniqueString(rg.id, deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+  dependsOn: [
+    labResources
+  ]
+}
+
+module windowsBruteForceRule './infra/analytics-rule-windows-bruteforce.bicep' = {
+  scope: resourceGroup(rg.name)
+  name: 'windowsBruteForceRuleDeployment-${uniqueString(rg.id, deployment().name)}'
+  params: {
+    logAnalyticsWorkspaceName: logAnalyticsWorkspaceName
+  }
+  dependsOn: [
+    labResources
+  ]
+}
