@@ -1,0 +1,41 @@
+// Process creation & lineage - Windows RDP decoy
+//
+// Correlates two sources of process-creation telemetry:
+//   1) Native Windows Security auditing, Event ID 4688 (full command line, parent PID)
+//   2) Sysmon Event ID 1 (process create), ingested via the classic "Event" table
+//
+// NOTE ON SYSMON PARSING: Sysmon events land in the "Event" table as raw XML in
+// EventData. The Data[] index positions below match a default Sysmon config with
+// no field exclusions. If your sysmon config (install-sysmon.ps1 / Sysmon XML config)
+// customizes which fields are logged or their order, re-check these indices against
+// a sample raw event before trusting the output - this is the one part of this query
+// that's environment-specific rather than guaranteed to just work.
+
+let NativeProcessCreation =
+    SecurityEvent
+    | where EventID == 4688
+    | project
+        TimeGenerated,
+        Computer,
+        ProcessName = NewProcessName,
+        CommandLine,
+        ParentProcessName,
+        User = SubjectUserName,
+        Source = "WindowsSecurity-4688";
+let SysmonProcessCreation =
+    Event
+    | where Source == "Microsoft-Windows-Sysmon"
+    | where EventID == 1
+    | extend EventDetail = parse_xml(EventData)
+    | extend
+        ProcessName = tostring(EventDetail.DataItem.EventData.Data[4]["#text"]),
+        CommandLine = tostring(EventDetail.DataItem.EventData.Data[10]["#text"]),
+        ParentProcessName = tostring(EventDetail.DataItem.EventData.Data[23]["#text"]),
+        User = tostring(EventDetail.DataItem.EventData.Data[12]["#text"])
+    | project TimeGenerated, Computer, ProcessName, CommandLine, ParentProcessName, User, Source = "Sysmon-EID1";
+union NativeProcessCreation, SysmonProcessCreation
+| where isnotempty(ProcessName)
+| extend IsSuspiciousParent = ParentProcessName has_any (
+    "wscript.exe", "cscript.exe", "mshta.exe", "powershell.exe", "cmd.exe", "rundll32.exe"
+) and ProcessName has_any ("cmd.exe", "powershell.exe", "certutil.exe", "bitsadmin.exe")
+| order by TimeGenerated desc
