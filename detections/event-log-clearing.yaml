@@ -1,0 +1,50 @@
+id: 1a5c8e3d-9f2b-4d7e-a6c1-3e8b5d2f9a4c
+name: Windows Honeypot - Event Log Clearing Detected
+description: |
+  Detects attempts to clear Windows event logs via native audit events
+  (Event ID 1102 - Security log cleared, 104 - other log cleared) or via
+  wevtutil/Clear-EventLog command-line usage. There is no legitimate admin
+  reason to clear logs on a honeypot, so a single hit is treated as high
+  confidence and worth immediate investigation.
+severity: High
+requiredDataConnectors:
+  - connectorId: SecurityEvents
+    dataTypes:
+      - SecurityEvent
+queryFrequency: 10m
+queryPeriod: 10m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - DefenseEvasion
+relevantTechniques:
+  - T1070.001
+query: |
+  let ClearCommands = SecurityEvent
+  | where NewProcessName has_any ("wevtutil.exe", "powershell.exe", "pwsh.exe")
+    and CommandLine has_any ("cl ", "clear-log", "Clear-EventLog", "wevtutil cl")
+  | project TimeGenerated, Computer, Account, NewProcessName, CommandLine,
+            Technique = "T1070.001 - Clear Logs (Command Line)";
+  let ClearedEvents = SecurityEvent
+  | where EventID in (1102, 104)
+  | project TimeGenerated, Computer, Account, EventID, Activity,
+            Technique = "T1070.001 - Clear Logs (Audit Event)";
+  ClearCommands
+  | union ClearedEvents
+  | sort by TimeGenerated desc
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: FullName
+        columnName: Computer
+  - entityType: Account
+    fieldMappings:
+      - identifier: Name
+        columnName: Account
+eventGroupingSettings:
+  aggregationKind: SingleAlert
+suppressionEnabled: false
+alertGroupingEnabled: false
+version: 1.0.0
+kind: Scheduled
+status: Disabled
