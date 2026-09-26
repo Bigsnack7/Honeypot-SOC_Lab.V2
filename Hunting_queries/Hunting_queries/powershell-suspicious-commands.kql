@@ -1,0 +1,23 @@
+// powershell-suspicious-commands.kql
+// Purpose: Detect suspicious PowerShell usage patterns commonly seen post-exploitation.
+// Covers: T1059.001 - Command and Scripting Interpreter: PowerShell
+// Includes: encoded commands, download cradles, AMSI bypass strings, execution policy bypass.
+// Data source: DeviceProcessEvents (Microsoft Defender for Endpoint)
+
+DeviceProcessEvents
+| where TimeGenerated >= ago(1d)
+| where FileName in~ ("powershell.exe", "pwsh.exe")
+| extend Technique = case(
+    ProcessCommandLine has_any ("-enc", "-EncodedCommand", "-e ", "/e "), "T1027 - Encoded Command",
+    ProcessCommandLine has_any ("IEX", "Invoke-Expression", "DownloadString", "DownloadFile", "Net.WebClient"), "T1105 - Download Cradle",
+    ProcessCommandLine has_any ("amsiutils", "amsiInitFailed", "AmsiScanBuffer"), "T1562.001 - AMSI Bypass",
+    ProcessCommandLine has_any ("-ExecutionPolicy Bypass", "-exec bypass", "-ep bypass"), "T1059.001 - Execution Policy Bypass",
+    ProcessCommandLine has_any ("-WindowStyle Hidden", "-w hidden", "-nop", "-NoProfile"), "T1564.003 - Hidden Window / Stealth Execution",
+    ProcessCommandLine has_any ("Invoke-Mimikatz", "Invoke-WMIExec", "Invoke-SMBExec"), "T1003/T1021 - Credential Access or Lateral Movement Tooling",
+    "Other Suspicious PowerShell")
+| where Technique != "Other Suspicious PowerShell" or ProcessCommandLine has_any ("-nop", "-noni", "bypass")
+| project TimeGenerated, DeviceName, AccountName, ProcessCommandLine,
+          InitiatingProcessFileName, InitiatingProcessCommandLine, Technique
+| sort by TimeGenerated desc
+// Tip: Base64 blobs after -enc can be decoded with base64_decode_tostring()
+// for readability, e.g.: extend Decoded = base64_decode_tostring(extract(@"-enc\s+([A-Za-z0-9+/=]+)", 1, ProcessCommandLine))
