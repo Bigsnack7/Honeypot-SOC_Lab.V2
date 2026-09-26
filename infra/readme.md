@@ -101,7 +101,7 @@ Every push to `main` under `infra/**` triggers `.github/workflows/deploy-infra.y
 2. Generates a parameters file from GitHub Secrets (admin credentials, SSH key)
 3. Deploys `main.bicep` at subscription scope via `azure/arm-deploy`
 
-Required secrets: `AZURE_CREDENTIALS`, `AZURE_SUBSCRIPTION_ID`, `VM_ADMIN_PASSWORD`, `VM_SSH_PUBLIC_KEY`.
+Required secrets: `AZURE_CREDENTIALS`, `AZURE_SUBSCRIPTION_ID`, `VM_ADMIN_PASSWORD`, `VM_SSH_PUBLIC_KEY` `Email` .
 
 ## Findings
 
@@ -121,5 +121,18 @@ Live traffic captured during operation includes:
 - This lab is for research, learning, and demonstration purposes only.
 
 ---
+## What I Learned
 
-*Built as a hands-on exercise in detection engineering, infrastructure-as-code, and SOC tooling.*
+- Designing isolated Azure networks for security research
+- Collecting Windows and Linux telemetry with Azure Monitor Agent
+- Writing scheduled detections in Microsoft Sentinel
+- Tuning detection thresholds against observed attacker behavior
+- Using Sysmon to increase Windows endpoint visibility
+- Working with custom Sentinel tables and Data Collection Rules
+- Building security infrastructure with Bicep
+- Automating cloud deployments through GitHub Actions
+- Investigating unsolicited internet activity against honeypots
+- Connecting detection, visualization, and automated response into a SOC workflow
+
+*Built as a hands-on cloud security research lab to study real-world attack traffic, detection engineering, security telemetry, and automated incident response in Azure.
+The environment is intentionally exposed to the public internet, isolated from production resources, and deployed entirely through infrastructure-as-code. All observations are generated from activity against the lab's own decoys.*
