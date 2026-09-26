@@ -536,8 +536,6 @@ module detectionAlerts './detection-alerts.bicep' = {
   ]
 }
 
-
-
 // S. Deploy the incident enrichment/notification playbook (SOAR)
 module irPlaybook './ir-playbook.bicep' = {
   name: 'irPlaybookDeployment-${uniqueString(deployment().name)}'
