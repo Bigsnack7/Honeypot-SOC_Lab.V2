@@ -536,6 +536,299 @@ resource windowsProcessCreationRule 'Microsoft.SecurityInsights/alertRules@2023-
   ]
 }
 
+// M4. Analytics Rule: Cowrie Post-Exploit Command Sequences
+resource cowriePostExploitSequencesRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('cowrie-post-exploit-sequences-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Cowrie Honeypot - Post-Exploit Command Sequence Detected'
+    description: 'Flags known post-exploitation command patterns on the Cowrie shell - download-and-execute chains, permission changes, firewall/log tampering, cron persistence, and credential file access.'
+    severity: 'High'
+    enabled: false
+    query: '''
+      Cowrie_CL
+      | extend Parsed = parse_json(RawData)
+      | where tostring(Parsed.eventid) == "cowrie.command.input"
+      | extend SourceIP = tostring(Parsed.src_ip), Command = tostring(Parsed.input)
+      | extend Technique = case(
+          Command has_any ("wget", "curl") and Command has_any ("| sh", "| bash", "-O -"), "T1105 - Download and Execute Chain",
+          Command has "chmod" and Command has_any ("+x", "777"), "T1222 - File Permission Modification",
+          Command has_any ("iptables -F", "ufw disable", "systemctl stop firewalld"), "T1562.004 - Disable Firewall",
+          Command has_any ("rm -rf /var/log", "history -c", "> /var/log"), "T1070 - Indicator Removal on Host",
+          Command has_any ("crontab -e", "crontab -l"), "T1053.003 - Cron Persistence",
+          Command has_any ("cat /etc/passwd", "cat /etc/shadow"), "T1552 - Credential/Config Discovery",
+          "Other")
+      | where Technique != "Other"
+    '''
+    queryFrequency: 'PT10M'
+    queryPeriod: 'PT10M'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'Execution'
+      'Persistence'
+      'DefenseEvasion'
+      'CredentialAccess'
+    ]
+    techniques: [
+      'T1105'
+      'T1222'
+      'T1070'
+    ]
+    entityMappings: [
+      {
+        entityType: 'IP'
+        fieldMappings: [
+          {
+            identifier: 'Address'
+            columnName: 'SourceIP'
+          }
+        ]
+      }
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+    cowrieTable
+  ]
+}
+
+// N3. Analytics Rule: Windows Persistence Attempts
+resource windowsPersistenceAttemptsRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('windows-persistence-attempts-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Windows Honeypot - Persistence Attempt Detected'
+    description: 'Flags new scheduled tasks (4698), registry Run/RunOnce key writes (Sysmon Event 13), and new service installation (4697) on the Windows honeypot. No legitimate reason for these to occur here.'
+    severity: 'High'
+    enabled: false
+    query: '''
+      let ScheduledTasks = SecurityEvent
+      | where EventID == 4698
+      | project TimeGenerated, HostName = Computer, Account, Technique = "T1053.005 - Scheduled Task Created";
+      let NewServices = SecurityEvent
+      | where EventID == 4697
+      | project TimeGenerated, HostName = Computer, Account, Technique = "T1543.003 - New Service Installed";
+      let RunKeys = Event
+      | where Source == "Microsoft-Windows-Sysmon" and EventID == 13
+      | extend EvData = parse_xml(EventData).DataItem.EventData.Data
+      | extend TargetObject = tostring(EvData[6].["#text"])
+      | where TargetObject has_any (@"CurrentVersion\Run", @"CurrentVersion\RunOnce", @"CurrentVersion\RunServices")
+      | project TimeGenerated, HostName = Computer, Account = "", Technique = "T1547.001 - Registry Run Key";
+      ScheduledTasks
+      | union NewServices, RunKeys
+    '''
+    queryFrequency: 'PT10M'
+    queryPeriod: 'PT10M'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'Persistence'
+    ]
+    techniques: [
+      'T1053'
+      'T1547'
+      'T1543'
+    ]
+    entityMappings: [
+      {
+        entityType: 'Host'
+        fieldMappings: [
+          {
+            identifier: 'HostName'
+            columnName: 'HostName'
+          }
+        ]
+      }
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+    windowsDcr
+  ]
+}
+
+// N4. Analytics Rule: Windows Discovery Commands
+resource windowsDiscoveryCommandsRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('windows-discovery-commands-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Windows Honeypot - Discovery Commands Detected'
+    description: 'Flags "just landed" recon commands (whoami, systeminfo, ipconfig, net user, nltest, etc.) typically run right after initial access, via Sysmon process creation.'
+    severity: 'Medium'
+    enabled: false
+    query: '''
+      Event
+      | where Source == "Microsoft-Windows-Sysmon" and EventID == 1
+      | extend EvData = parse_xml(EventData).DataItem.EventData.Data
+      | extend NewProcessName = tostring(EvData[4].["#text"]), CommandLine = tostring(EvData[10].["#text"])
+      | where NewProcessName has_any (
+          "whoami.exe", "systeminfo.exe", "ipconfig.exe", "nltest.exe",
+          "net.exe", "net1.exe", "hostname.exe", "tasklist.exe",
+          "quser.exe", "arp.exe", "route.exe", "nbtstat.exe")
+      | project TimeGenerated, HostName = Computer, NewProcessName, CommandLine
+    '''
+    queryFrequency: 'PT10M'
+    queryPeriod: 'PT10M'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'Discovery'
+    ]
+    techniques: [
+      'T1087'
+      'T1082'
+      'T1016'
+      'T1482'
+    ]
+    entityMappings: [
+      {
+        entityType: 'Host'
+        fieldMappings: [
+          {
+            identifier: 'HostName'
+            columnName: 'HostName'
+          }
+        ]
+      }
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+    windowsDcr
+  ]
+}
+
+// N5. Analytics Rule: Windows Event Log Clearing
+resource eventLogClearingRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('event-log-clearing-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Windows Honeypot - Event Log Clearing Detected'
+    description: 'Flags attempts to clear Windows event logs (EventID 1102/104) or wevtutil/Clear-EventLog command-line usage. No legitimate reason to occur on a honeypot - single hit is high confidence.'
+    severity: 'High'
+    enabled: false
+    query: '''
+      let ClearedEvents = SecurityEvent
+      | where EventID in (1102, 104)
+      | project TimeGenerated, HostName = Computer, Account, Activity;
+      let ClearCommands = SecurityEvent
+      | where EventID == 4688
+      | where NewProcessName has_any ("wevtutil.exe", "powershell.exe", "pwsh.exe")
+        and CommandLine has_any ("cl ", "clear-log", "Clear-EventLog", "wevtutil cl")
+      | project TimeGenerated, HostName = Computer, Account, Activity = CommandLine;
+      ClearedEvents
+      | union ClearCommands
+    '''
+    queryFrequency: 'PT10M'
+    queryPeriod: 'PT10M'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'DefenseEvasion'
+    ]
+    techniques: [
+      'T1070'
+    ]
+    entityMappings: [
+      {
+        entityType: 'Host'
+        fieldMappings: [
+          {
+            identifier: 'HostName'
+            columnName: 'HostName'
+          }
+        ]
+      }
+      {
+        entityType: 'Account'
+        fieldMappings: [
+          {
+            identifier: 'Name'
+            columnName: 'Account'
+          }
+        ]
+      }
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+    windowsDcr
+  ]
+}
+
+// N6. Analytics Rule: Suspicious PowerShell Activity
+resource powershellSuspiciousCommandsRule 'Microsoft.SecurityInsights/alertRules@2023-11-01' = {
+  scope: law
+  name: guid('powershell-suspicious-commands-rule')
+  kind: 'Scheduled'
+  properties: {
+    displayName: 'Windows Honeypot - Suspicious PowerShell Activity'
+    description: 'Flags encoded commands, download cradles, AMSI bypass strings, and execution-policy bypass in PowerShell activity via Sysmon-captured command lines.'
+    severity: 'High'
+    enabled: false
+    query: '''
+      Event
+      | where Source == "Microsoft-Windows-Sysmon" and EventID == 1
+      | extend EvData = parse_xml(EventData).DataItem.EventData.Data
+      | extend NewProcessName = tostring(EvData[4].["#text"]), CommandLine = tostring(EvData[10].["#text"])
+      | where NewProcessName has_any ("powershell.exe", "pwsh.exe")
+      | where CommandLine has_any (
+          "-enc", "-EncodedCommand", "IEX", "Invoke-Expression", "DownloadString",
+          "DownloadFile", "amsiutils", "AmsiScanBuffer", "-ExecutionPolicy Bypass",
+          "-exec bypass", "-WindowStyle Hidden", "-nop", "Invoke-Mimikatz")
+      | project TimeGenerated, HostName = Computer, CommandLine
+    '''
+    queryFrequency: 'PT10M'
+    queryPeriod: 'PT10M'
+    triggerOperator: 'GreaterThan'
+    triggerThreshold: 0
+    suppressionDuration: 'PT1H'
+    suppressionEnabled: false
+    tactics: [
+      'Execution'
+      'DefenseEvasion'
+    ]
+    techniques: [
+      'T1059'
+      'T1027'
+      'T1105'
+    ]
+    entityMappings: [
+      {
+        entityType: 'Host'
+        fieldMappings: [
+          {
+            identifier: 'HostName'
+            columnName: 'HostName'
+          }
+        ]
+      }
+    ]
+  }
+  dependsOn: [
+    sentinel
+    sentinelOnboarding
+    windowsDcr
+  ]
+}
+
 // L. Create the Data Collection Rule for Windows (Security + Sysmon)
 module windowsDcr './windows-dcr.bicep' = {
   name: 'windowsDcrDeployment-${uniqueString(deployment().name)}'
