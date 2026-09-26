@@ -1,0 +1,25 @@
+// windows-discovery-commands.kql
+// Purpose: Flag "just landed" discovery/recon commands typically run right after
+// initial access on a compromised or honeypot host.
+// Covers: System info discovery (T1082), account discovery (T1087),
+//         network config discovery (T1016), domain trust discovery (T1482).
+// Data source: DeviceProcessEvents (Microsoft Defender for Endpoint)
+
+DeviceProcessEvents
+| where TimeGenerated >= ago(1d)
+| where FileName in~ (
+    "whoami.exe", "systeminfo.exe", "ipconfig.exe", "nltest.exe",
+    "net.exe", "net1.exe", "hostname.exe", "tasklist.exe",
+    "quser.exe", "arp.exe", "route.exe", "nbtstat.exe")
+| extend Technique = case(
+    FileName in~ ("whoami.exe", "quser.exe"), "T1033/T1087 - Account/User Discovery",
+    FileName in~ ("systeminfo.exe", "hostname.exe", "tasklist.exe"), "T1082 - System Information Discovery",
+    FileName in~ ("ipconfig.exe", "arp.exe", "route.exe", "nbtstat.exe"), "T1016 - System Network Config Discovery",
+    FileName in~ ("nltest.exe"), "T1482 - Domain Trust Discovery",
+    FileName in~ ("net.exe", "net1.exe") and ProcessCommandLine has_any ("user", "group", "localgroup"), "T1087 - Account Discovery",
+    "Uncategorized Discovery")
+| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine,
+          InitiatingProcessFileName, InitiatingProcessCommandLine, Technique
+| sort by TimeGenerated desc
+// Tip: Group by DeviceName and bin(TimeGenerated, 5m) to spot rapid-fire
+// discovery command "chains" that indicate a live attacker vs. automated scanner.
