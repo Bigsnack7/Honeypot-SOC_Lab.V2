@@ -1,39 +1,26 @@
-// windows-persistence-attempts.kql
-// Purpose: Detect common Windows persistence techniques on the honeypot host.
-// Covers: new scheduled tasks (T1053.005), registry Run/RunOnce key writes (T1547.001),
-//         and new service creation (T1543.003).
-// Data sources: DeviceProcessEvents / DeviceRegistryEvents (Microsoft Defender for Endpoint)
-//               Adjust to SecurityEvent (EventID 4698, 4657, 7045) if using native Windows Security logs instead.
-
 let lookback = 1d;
-// --- Scheduled task creation ---
-let ScheduledTasks = DeviceProcessEvents
+let ScheduledTasks = SecurityEvent
 | where TimeGenerated >= ago(lookback)
-| where FileName in~ ("schtasks.exe")
-    and ProcessCommandLine has_any ("/create", "/Create")
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine,
-          InitiatingProcessFileName, InitiatingProcessCommandLine, Technique = "T1053.005 - Scheduled Task";
-
-// --- Registry Run/RunOnce key persistence ---
-let RunKeys = DeviceRegistryEvents
+| where EventID == 4698
+| project TimeGenerated, Computer, Account, Activity,
+          TaskName = extract(@"Task Name:\s*(.+)", 1, EventData),
+          Technique = "T1053.005 - Scheduled Task Created";
+let RunKeys = Event
 | where TimeGenerated >= ago(lookback)
-| where RegistryKey has_any (
-    @"CurrentVersion\Run",
-    @"CurrentVersion\RunOnce",
-    @"CurrentVersion\RunServices")
-| where ActionType in ("RegistryValueSet", "RegistryKeyCreated")
-| project TimeGenerated, DeviceName, InitiatingProcessAccountName, RegistryKey, RegistryValueName,
-          RegistryValueData, InitiatingProcessFileName, InitiatingProcessCommandLine,
+| where Source == "Microsoft-Windows-Sysmon" and EventID == 13
+| extend EvData = parse_xml(EventData).DataItem.EventData.Data
+| extend Image = tostring(EvData[5].["#text"]),
+         TargetObject = tostring(EvData[6].["#text"]),
+         Details = tostring(EvData[7].["#text"])
+| where TargetObject has_any (@"CurrentVersion\Run", @"CurrentVersion\RunOnce", @"CurrentVersion\RunServices")
+| project TimeGenerated, Computer, Image, TargetObject, Details,
           Technique = "T1547.001 - Registry Run Key";
-
-// --- New service creation ---
-let NewServices = DeviceProcessEvents
+let NewServices = SecurityEvent
 | where TimeGenerated >= ago(lookback)
-| where (FileName in~ ("sc.exe") and ProcessCommandLine has "create")
-    or (FileName in~ ("powershell.exe", "pwsh.exe") and ProcessCommandLine has "New-Service")
-| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine,
-          InitiatingProcessFileName, InitiatingProcessCommandLine, Technique = "T1543.003 - New Service";
-
+| where EventID == 4697
+| project TimeGenerated, Computer, Account, Activity,
+          ServiceName = extract(@"Service Name:\s*(.+)", 1, EventData),
+          Technique = "T1543.003 - New Service Installed";
 ScheduledTasks
 | union RunKeys, NewServices
 | sort by TimeGenerated desc
