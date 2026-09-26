@@ -572,6 +572,7 @@ resource cowriePostExploitSequencesRule 'Microsoft.SecurityInsights/alertRules@2
       'Persistence'
       'DefenseEvasion'
       'CredentialAccess'
+      'CommandAndControl'
     ]
     techniques: [
       'T1105'
@@ -804,6 +805,7 @@ resource powershellSuspiciousCommandsRule 'Microsoft.SecurityInsights/alertRules
     tactics: [
       'Execution'
       'DefenseEvasion'
+      'CommandAndControl'
     ]
     techniques: [
       'T1059'
