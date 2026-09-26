@@ -76,12 +76,6 @@ az role assignment create \
 
 ![Repobeats analytics image](https://repobeats.axiom.co/api/embed/8156edf8ccce9da1880922b23b4ed706d0be5113.svg)
 
-</div>## Repository Activity
-
-<div align="center">
-
-![Repobeats analytics image](https://repobeats.axiom.co/api/embed/8156edf8ccce9da1880922b23b4ed706d0be5113.svg)
-
 </div>
 
 ## Lessons learned
