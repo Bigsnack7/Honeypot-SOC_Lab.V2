@@ -231,7 +231,7 @@ resource cowrieBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
     displayName: 'Cowrie SSH Brute Force Detected'
     description: 'Flags source IPs with 6+ failed SSH login attempts against the Cowrie honeypot within 24 hours, catching both rapid and slow/evasive brute-force patterns.'
     severity: 'Medium'
-    enabled: false
+    enabled: true
     query: '''
       Cowrie_CL
       | extend Parsed = parse_json(RawData)
@@ -289,7 +289,7 @@ resource windowsBruteForceRule 'Microsoft.SecurityInsights/alertRules@2023-11-01
     displayName: 'Windows RDP Brute Force Detected'
     description: 'Flags source IPs with 5+ failed RDP login attempts against the Windows honeypot within 5 minutes.'
     severity: 'Medium'
-    enabled: false
+    enabled: true
     query: '''
       SecurityEvent
       | where EventID == 4625
@@ -337,7 +337,7 @@ resource webDecoyScanningRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
     displayName: 'Web Decoy Sensitive Path Scanning Detected'
     description: 'Flags source IPs probing multiple honeytoken paths (wp-login.php, .env, admin) within 10 minutes.'
     severity: 'Medium'
-    enabled: false
+    enabled: true
     query: '''
       WebDecoy_CL
       | extend Parsed = parse_json(RawData)
@@ -385,7 +385,7 @@ resource cowriePipelineSilentRule 'Microsoft.SecurityInsights/alertRules@2023-11
     displayName: 'Cowrie Honeypot - No Data Received'
     description: 'Fires when Cowrie_CL has received no events in 30+ minutes. VM heartbeat alone does not catch a crashed or misconfigured honeypot process - see INCIDENT_2026-09-21_provisioning_failures.md'
     severity: 'Medium'
-    enabled: false
+    enabled: true
     query: '''
       Cowrie_CL
       | summarize Latest = max(TimeGenerated)
@@ -417,7 +417,7 @@ resource webDecoyPipelineSilentRule 'Microsoft.SecurityInsights/alertRules@2023-
     displayName: 'Web Decoy Honeypot - No Data Received'
     description: 'Fires when WebDecoy_CL has received no events in 30+ minutes. Added after a 3-day silent outage where the web decoy crash-looped with no alert generated - see INCIDENT_2026-09-21_provisioning_failures.md'
     severity: 'Medium'
-    enabled: false
+    enabled: true
     query: '''
       WebDecoy_CL
       | summarize Latest = max(TimeGenerated)
@@ -449,7 +449,7 @@ resource cowrieCommandExecutionRule 'Microsoft.SecurityInsights/alertRules@2023-
     displayName: 'Cowrie Command Execution After Login'
     description: 'An attacker logged in to the Cowrie honeypot and ran shell commands.'
     severity: 'High'
-    enabled: false
+    enabled: true
     query: '''
       Cowrie_CL
       | extend Parsed = parse_json(RawData)
@@ -497,7 +497,7 @@ resource windowsProcessCreationRule 'Microsoft.SecurityInsights/alertRules@2023-
     displayName: 'Windows Suspicious Process Creation'
     description: 'Process creation (4688) of common attacker tools on the Windows honeypot.'
     severity: 'High'
-    enabled: false
+    enabled: true
     query: '''
       SecurityEvent
       | where EventID == 4688
@@ -545,7 +545,7 @@ resource cowriePostExploitSequencesRule 'Microsoft.SecurityInsights/alertRules@2
     displayName: 'Cowrie Honeypot - Post-Exploit Command Sequence Detected'
     description: 'Flags known post-exploitation command patterns on the Cowrie shell - download-and-execute chains, permission changes, firewall/log tampering, cron persistence, and credential file access.'
     severity: 'High'
-    enabled: false
+    enabled: true
     query: '''
       Cowrie_CL
       | extend Parsed = parse_json(RawData)
@@ -607,7 +607,7 @@ resource windowsPersistenceAttemptsRule 'Microsoft.SecurityInsights/alertRules@2
     displayName: 'Windows Honeypot - Persistence Attempt Detected'
     description: 'Flags new scheduled tasks (4698), registry Run/RunOnce key writes (Sysmon Event 13), and new service installation (4697) on the Windows honeypot. No legitimate reason for these to occur here.'
     severity: 'High'
-    enabled: false
+    enabled: true
     query: '''
       let ScheduledTasks = SecurityEvent
       | where EventID == 4698
@@ -666,7 +666,7 @@ resource windowsDiscoveryCommandsRule 'Microsoft.SecurityInsights/alertRules@202
     displayName: 'Windows Honeypot - Discovery Commands Detected'
     description: 'Flags "just landed" recon commands (whoami, systeminfo, ipconfig, net user, nltest, etc.) typically run right after initial access, via Sysmon process creation.'
     severity: 'Medium'
-    enabled: false
+    enabled: true
     query: '''
       Event
       | where Source == "Microsoft-Windows-Sysmon" and EventID == 1
@@ -721,7 +721,7 @@ resource eventLogClearingRule 'Microsoft.SecurityInsights/alertRules@2023-11-01'
     displayName: 'Windows Honeypot - Event Log Clearing Detected'
     description: 'Flags attempts to clear Windows event logs (EventID 1102/104) or wevtutil/Clear-EventLog command-line usage. No legitimate reason to occur on a honeypot - single hit is high confidence.'
     severity: 'High'
-    enabled: false
+    enabled: true
     query: '''
       let ClearedEvents = SecurityEvent
       | where EventID in (1102, 104)
@@ -783,7 +783,7 @@ resource powershellSuspiciousCommandsRule 'Microsoft.SecurityInsights/alertRules
     displayName: 'Windows Honeypot - Suspicious PowerShell Activity'
     description: 'Flags encoded commands, download cradles, AMSI bypass strings, and execution-policy bypass in PowerShell activity via Sysmon-captured command lines.'
     severity: 'High'
-    enabled: false
+    enabled: true
     query: '''
       Event
       | where Source == "Microsoft-Windows-Sysmon" and EventID == 1
