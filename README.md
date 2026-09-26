@@ -70,6 +70,20 @@ az role assignment create \
 | Web decoy path scanning | T1595 (Reconnaissance) | 3+ honeytoken path probes / 10min |
 | Cowrie / WebDecoy pipeline silence | — | No data received in 30+ min |
 
+## Repository Activity
+
+<div align="center">
+
+![Repobeats analytics image](https://repobeats.axiom.co/api/embed/8156edf8ccce9da1880922b23b4ed706d0be5113.svg)
+
+</div>## Repository Activity
+
+<div align="center">
+
+![Repobeats analytics image](https://repobeats.axiom.co/api/embed/8156edf8ccce9da1880922b23b4ed706d0be5113.svg)
+
+</div>
+
 ## Lessons learned
 
 This project includes a documented incident (`INCIDENT_2026-09-21_provisioning_failures.md`) from a real 3-day silent outage where the web decoy crash-looped with no alert generated — the pipeline health rules above were added directly in response.
