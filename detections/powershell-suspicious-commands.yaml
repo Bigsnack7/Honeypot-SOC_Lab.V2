@@ -17,6 +17,7 @@ triggerThreshold: 0
 tactics:
   - Execution
   - DefenseEvasion
+  - CommandAndControl
 relevantTechniques:
   - T1059.001
   - T1027
