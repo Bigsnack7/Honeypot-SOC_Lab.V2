@@ -51,6 +51,7 @@ jobs:
       - name: Validate Bicep Template
         run: |
           az deployment sub validate \
+            --name validate-${{ github.run_id }} \
             --location centralus \
             --template-file ./infra/main.bicep \
             --parameters params.json
