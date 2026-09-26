@@ -1,0 +1,62 @@
+id: 6b2d9f4a-7c1e-4a8d-b3f5-9d2a6c1e4f8b
+name: Windows Honeypot - Suspicious PowerShell Activity
+description: |
+  Detects encoded commands, download cradles, AMSI bypass strings, and
+  execution-policy bypass flags in PowerShell activity, using PowerShell
+  script block logging (Event ID 4104) with a Sysmon command-line fallback
+  if script block logging isn't enabled on the host.
+severity: High
+requiredDataConnectors:
+  - connectorId: WindowsSysmon
+    dataTypes:
+      - Event
+queryFrequency: 10m
+queryPeriod: 10m
+triggerOperator: gt
+triggerThreshold: 0
+tactics:
+  - Execution
+  - DefenseEvasion
+relevantTechniques:
+  - T1059.001
+  - T1027
+  - T1105
+  - T1562.001
+query: |
+  let ScriptBlockLogs = Event
+  | where Source == "Microsoft-Windows-PowerShell" and EventID == 4104
+  | extend EvData = parse_xml(EventData)
+  | extend ScriptBlockText = tostring(EvData.UserData.EventXML.ScriptBlockText)
+  | where isnotempty(ScriptBlockText)
+  | project TimeGenerated, Computer, ScriptBlockText;
+  let SysmonPwsh = Event
+  | where Source == "Microsoft-Windows-Sysmon" and EventID == 1
+  | extend EvData = parse_xml(EventData).DataItem.EventData.Data
+  | extend Image = tostring(EvData[4].["#text"]),
+           CommandLine = tostring(EvData[10].["#text"])
+  | where Image has_any ("powershell.exe", "pwsh.exe")
+  | project TimeGenerated, Computer, ScriptBlockText = CommandLine;
+  union ScriptBlockLogs, SysmonPwsh
+  | extend Technique = case(
+      ScriptBlockText has_any ("-enc", "-EncodedCommand", "-e ", "/e "), "T1027 - Encoded Command",
+      ScriptBlockText has_any ("IEX", "Invoke-Expression", "DownloadString", "DownloadFile", "Net.WebClient"), "T1105 - Download Cradle",
+      ScriptBlockText has_any ("amsiutils", "amsiInitFailed", "AmsiScanBuffer"), "T1562.001 - AMSI Bypass",
+      ScriptBlockText has_any ("-ExecutionPolicy Bypass", "-exec bypass", "-ep bypass"), "T1059.001 - Execution Policy Bypass",
+      ScriptBlockText has_any ("-WindowStyle Hidden", "-w hidden", "-nop", "-NoProfile"), "T1564.003 - Hidden Window / Stealth Execution",
+      ScriptBlockText has_any ("Invoke-Mimikatz", "Invoke-WMIExec", "Invoke-SMBExec"), "T1003/T1021 - Credential Access or Lateral Movement Tooling",
+      "Other Suspicious PowerShell")
+  | where Technique != "Other Suspicious PowerShell"
+  | project TimeGenerated, Computer, ScriptBlockText, Technique
+  | sort by TimeGenerated desc
+entityMappings:
+  - entityType: Host
+    fieldMappings:
+      - identifier: FullName
+        columnName: Computer
+eventGroupingSettings:
+  aggregationKind: SingleAlert
+suppressionEnabled: false
+alertGroupingEnabled: false
+version: 1.0.0
+kind: Scheduled
+status: Disabled
