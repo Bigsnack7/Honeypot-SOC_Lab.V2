@@ -1003,3 +1003,6 @@ resource sentinelAutomationContributorRole 'Microsoft.Authorization/roleAssignme
     principalType: 'ServicePrincipal'
   }
 }
+
+
+
