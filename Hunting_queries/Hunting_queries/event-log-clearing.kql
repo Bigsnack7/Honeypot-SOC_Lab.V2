@@ -1,0 +1,27 @@
+// event-log-clearing.kql
+// Purpose: Detect attempts to clear Windows event logs — a high-fidelity signal
+// on a honeypot since there is no legitimate admin reason to do this here.
+// Covers: T1070.001 - Indicator Removal: Clear Windows Event Logs
+// Data sources: DeviceProcessEvents (command-line clearing) + SecurityEvent (EventID 1102, 104)
+
+let ClearCommands = DeviceProcessEvents
+| where TimeGenerated >= ago(1d)
+| where (FileName in~ ("wevtutil.exe") and ProcessCommandLine has_any ("cl ", "clear-log", "cl\t"))
+    or (FileName in~ ("powershell.exe", "pwsh.exe") and ProcessCommandLine has "Clear-EventLog")
+    or (FileName in~ ("powershell.exe", "pwsh.exe") and ProcessCommandLine has "wevtutil")
+| project TimeGenerated, DeviceName, AccountName, FileName, ProcessCommandLine,
+          InitiatingProcessFileName, InitiatingProcessCommandLine,
+          Technique = "T1070.001 - Clear Logs (Command Line)";
+
+// Native "Security log cleared" event (EventID 1102) or "log file cleared" (EventID 104 - System log)
+let ClearedEvents = SecurityEvent
+| where TimeGenerated >= ago(1d)
+| where EventID in (1102, 104)
+| project TimeGenerated, Computer, Account, EventID, Activity,
+          Technique = "T1070.001 - Clear Logs (Audit Event)";
+
+ClearCommands
+| union ClearedEvents
+| sort by TimeGenerated desc
+// Note: Any single hit here on a honeypot warrants immediate investigation —
+// consider setting this rule's threshold to "more than 0 results" with no suppression.
