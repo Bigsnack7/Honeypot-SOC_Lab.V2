@@ -48,6 +48,13 @@ jobs:
       - name: Debug Parameters File
         run: cat params.json
 
+      - name: Validate Bicep Template
+        run: |
+          az deployment sub validate \
+            --location centralus \
+            --template-file ./infra/main.bicep \
+            --parameters params.json
+
       - name: Deploy Base Infrastructure via Bicep
         uses: azure/arm-deploy@v2
         with:
