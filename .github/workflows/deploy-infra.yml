@@ -8,7 +8,6 @@ on:
       - 'infra/**'
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
@@ -45,8 +44,8 @@ jobs:
           ALERT_EMAIL: ${{ secrets.ALERT_EMAIL }}
           SENTINEL_PRINCIPAL_ID: ${{ secrets.SENTINEL_PRINCIPAL_ID }}
 
-      - name: Debug Parameters File
-        run: cat params.json
+      - name: Validate Parameters File Structure
+        run: jq 'keys' params.json
 
       - name: Validate Bicep Template
         run: |
