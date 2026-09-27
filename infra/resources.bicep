@@ -17,7 +17,7 @@ param adminPassword string
 @secure()
 param sshPublicKey string
 
-@description('Object ID of the Azure Security Insights (Microsoft Sentinel) service principal in this tenant.')
+@description('Object ID of the Azure Security Insights (Microsoft Sentinel) service principal in this tenant. Unused now that alert rules run as Azure Monitor scheduled query rules, kept for compatibility with existing pipeline parameters.')
 param sentinelPrincipalId string
 
 // A. Deploy the Network Security Group via Azure Verified Modules (AVM)
@@ -200,7 +200,9 @@ resource law 'Microsoft.OperationalInsights/workspaces@2023-09-01' = {
   }
 }
 
-// D. Onboard Microsoft Sentinel
+// D. Onboard Microsoft Sentinel (kept for the workbook dashboard / Sentinel data view;
+// analytics rule creation is done via Azure Monitor scheduled query rules below instead,
+// since Sentinel alert rule writes are blocked on Free Trial + spending-limit subscriptions)
 resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' = {
   name: 'SecurityInsights(${logAnalyticsWorkspaceName})'
   location: location
@@ -215,11 +217,29 @@ resource sentinel 'Microsoft.OperationsManagement/solutions@2015-11-01-preview' 
   }
 }
 
-// D2. Complete Sentinel onboarding for the modern API (alert rules require this)
+// D2. Complete Sentinel onboarding for the modern API
 resource sentinelOnboarding 'Microsoft.SecurityInsights/onboardingStates@2023-02-01-preview' = {
   scope: law
   name: 'default'
   properties: {}
+}
+
+// Action Group: sends email when any detection rule fires.
+// Replaces Sentinel's incident/notification layer, which required paid Sentinel alert rules.
+resource honeypotAlertActionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = {
+  name: 'ag-honeypot-alerts'
+  location: 'global'
+  properties: {
+    groupShortName: 'HoneypotAG'
+    enabled: true
+    emailReceivers: [
+      {
+        name: 'HoneypotAdmin'
+        emailAddress: alertEmail
+        useCommonAlertSchema: true
+      }
+    ]
+  }
 }
 
 // M. Cowrie SSH Brute Force Detection
@@ -228,10 +248,12 @@ resource cowrieBruteForceRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15
   location: location
   properties: {
     displayName: 'Cowrie SSH Brute Force Detected'
-    description: 'Flags source IPs with 6+ failed SSH login attempts against the Cowrie honeypot within 24 hours.'
+    description: 'Flags source IPs with 6+ failed SSH login attempts against the Cowrie honeypot within 24 hours, catching both rapid and slow/evasive brute-force patterns.'
     severity: 2
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT1H'
     windowSize: 'P1D'
     criteria: {
@@ -252,7 +274,9 @@ resource cowrieBruteForceRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -267,10 +291,12 @@ resource windowsBruteForceRule 'Microsoft.Insights/scheduledQueryRules@2023-03-1
   location: location
   properties: {
     displayName: 'Windows RDP Brute Force Detected'
-    description: 'Flags source IPs with 5+ failed RDP login attempts within 5 minutes.'
+    description: 'Flags source IPs with 5+ failed RDP login attempts against the Windows honeypot within 5 minutes.'
     severity: 2
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT5M'
     windowSize: 'PT5M'
     criteria: {
@@ -289,7 +315,9 @@ resource windowsBruteForceRule 'Microsoft.Insights/scheduledQueryRules@2023-03-1
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -304,10 +332,12 @@ resource webDecoyScanningRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15
   location: location
   properties: {
     displayName: 'Web Decoy Sensitive Path Scanning Detected'
-    description: 'Flags source IPs probing multiple honeytoken paths within 10 minutes.'
+    description: 'Flags source IPs probing multiple honeytoken paths (wp-login.php, .env, admin) within 10 minutes.'
     severity: 2
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT10M'
     windowSize: 'PT10M'
     criteria: {
@@ -327,7 +357,9 @@ resource webDecoyScanningRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -336,16 +368,18 @@ resource webDecoyScanningRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15
   ]
 }
 
-// M2. Cowrie Pipeline Health
+// M2. Cowrie Pipeline Health (added after 2026-09-21 incident)
 resource cowriePipelineSilentRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
   name: 'cowrie-pipeline-silent-rule'
   location: location
   properties: {
     displayName: 'Cowrie Honeypot - No Data Received'
-    description: 'Fires when Cowrie_CL has received no events in 30+ minutes.'
+    description: 'Fires when Cowrie_CL has received no events in 30+ minutes. VM heartbeat alone does not catch a crashed or misconfigured honeypot process - see INCIDENT_2026-09-21_provisioning_failures.md'
     severity: 2
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT15M'
     windowSize: 'PT1H'
     criteria: {
@@ -363,7 +397,9 @@ resource cowriePipelineSilentRule 'Microsoft.Insights/scheduledQueryRules@2023-0
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -372,16 +408,18 @@ resource cowriePipelineSilentRule 'Microsoft.Insights/scheduledQueryRules@2023-0
   ]
 }
 
-// O2. WebDecoy Pipeline Health
+// O2. WebDecoy Pipeline Health (added after 2026-09-21 incident)
 resource webDecoyPipelineSilentRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15-preview' = {
   name: 'webdecoy-pipeline-silent-rule'
   location: location
   properties: {
     displayName: 'Web Decoy Honeypot - No Data Received'
-    description: 'Fires when WebDecoy_CL has received no events in 30+ minutes.'
+    description: 'Fires when WebDecoy_CL has received no events in 30+ minutes. Added after a 3-day silent outage where the web decoy crash-looped with no alert generated - see INCIDENT_2026-09-21_provisioning_failures.md'
     severity: 2
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT15M'
     windowSize: 'PT1H'
     criteria: {
@@ -399,7 +437,9 @@ resource webDecoyPipelineSilentRule 'Microsoft.Insights/scheduledQueryRules@2023
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -417,7 +457,9 @@ resource cowrieCommandExecutionRule 'Microsoft.Insights/scheduledQueryRules@2023
     description: 'An attacker logged in to the Cowrie honeypot and ran shell commands.'
     severity: 1
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT15M'
     windowSize: 'PT15M'
     criteria: {
@@ -437,7 +479,9 @@ resource cowrieCommandExecutionRule 'Microsoft.Insights/scheduledQueryRules@2023
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -455,7 +499,9 @@ resource windowsProcessCreationRule 'Microsoft.Insights/scheduledQueryRules@2023
     description: 'Process creation (4688) of common attacker tools on the Windows honeypot.'
     severity: 1
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT10M'
     windowSize: 'PT10M'
     criteria: {
@@ -473,7 +519,9 @@ resource windowsProcessCreationRule 'Microsoft.Insights/scheduledQueryRules@2023
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -488,10 +536,12 @@ resource cowriePostExploitSequencesRule 'Microsoft.Insights/scheduledQueryRules@
   location: location
   properties: {
     displayName: 'Cowrie Honeypot - Post-Exploit Command Sequence Detected'
-    description: 'Flags known post-exploitation command patterns on the Cowrie shell.'
+    description: 'Flags known post-exploitation command patterns on the Cowrie shell - download-and-execute chains, permission changes, firewall/log tampering, cron persistence, and credential file access.'
     severity: 1
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT10M'
     windowSize: 'PT10M'
     criteria: {
@@ -511,7 +561,9 @@ resource cowriePostExploitSequencesRule 'Microsoft.Insights/scheduledQueryRules@
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -526,10 +578,12 @@ resource windowsPersistenceAttemptsRule 'Microsoft.Insights/scheduledQueryRules@
   location: location
   properties: {
     displayName: 'Windows Honeypot - Persistence Attempt Detected'
-    description: 'Flags new scheduled tasks, registry Run key writes, and new service installation.'
+    description: 'Flags new scheduled tasks (4698) and new service installation (4697) on the Windows honeypot. No legitimate reason for these to occur here.'
     severity: 1
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT10M'
     windowSize: 'PT10M'
     criteria: {
@@ -546,7 +600,9 @@ resource windowsPersistenceAttemptsRule 'Microsoft.Insights/scheduledQueryRules@
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -561,10 +617,12 @@ resource windowsDiscoveryCommandsRule 'Microsoft.Insights/scheduledQueryRules@20
   location: location
   properties: {
     displayName: 'Windows Honeypot - Discovery Commands Detected'
-    description: 'Flags recon commands typically run right after initial access.'
+    description: 'Flags "just landed" recon commands (whoami, systeminfo, ipconfig, net user, nltest, etc.) typically run right after initial access, via Sysmon process creation.'
     severity: 2
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT10M'
     windowSize: 'PT10M'
     criteria: {
@@ -575,7 +633,7 @@ resource windowsDiscoveryCommandsRule 'Microsoft.Insights/scheduledQueryRules@20
             | where Source == "Microsoft-Windows-Sysmon" and EventID == 1
             | extend EvData = parse_xml(EventData).DataItem.EventData.Data
             | extend NewProcessName = tostring(EvData[4].["#text"])
-            | where NewProcessName has_any ("whoami.exe", "systeminfo.exe", "ipconfig.exe", "nltest.exe", "net.exe", "hostname.exe", "tasklist.exe", "quser.exe", "arp.exe", "route.exe", "nbtstat.exe")
+            | where NewProcessName has_any ("whoami.exe", "systeminfo.exe", "ipconfig.exe", "nltest.exe", "net.exe", "net1.exe", "hostname.exe", "tasklist.exe", "quser.exe", "arp.exe", "route.exe", "nbtstat.exe")
           '''
           timeAggregation: 'Count'
           operator: 'GreaterThan'
@@ -584,7 +642,9 @@ resource windowsDiscoveryCommandsRule 'Microsoft.Insights/scheduledQueryRules@20
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -599,10 +659,12 @@ resource eventLogClearingRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15
   location: location
   properties: {
     displayName: 'Windows Honeypot - Event Log Clearing Detected'
-    description: 'Flags attempts to clear Windows event logs.'
+    description: 'Flags attempts to clear Windows event logs (EventID 1102/104) or wevtutil/Clear-EventLog command-line usage. No legitimate reason to occur on a honeypot - single hit is high confidence.'
     severity: 1
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT10M'
     windowSize: 'PT10M'
     criteria: {
@@ -620,7 +682,9 @@ resource eventLogClearingRule 'Microsoft.Insights/scheduledQueryRules@2023-03-15
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -635,10 +699,12 @@ resource powershellSuspiciousCommandsRule 'Microsoft.Insights/scheduledQueryRule
   location: location
   properties: {
     displayName: 'Windows Honeypot - Suspicious PowerShell Activity'
-    description: 'Flags encoded commands, download cradles, and AMSI bypass strings in PowerShell.'
+    description: 'Flags encoded commands, download cradles, AMSI bypass strings, and execution-policy bypass in PowerShell activity via Sysmon-captured command lines.'
     severity: 1
     enabled: true
-    scopes: [law.id]
+    scopes: [
+      law.id
+    ]
     evaluationFrequency: 'PT10M'
     windowSize: 'PT10M'
     criteria: {
@@ -650,7 +716,7 @@ resource powershellSuspiciousCommandsRule 'Microsoft.Insights/scheduledQueryRule
             | extend EvData = parse_xml(EventData).DataItem.EventData.Data
             | extend NewProcessName = tostring(EvData[4].["#text"]), CommandLine = tostring(EvData[10].["#text"])
             | where NewProcessName has_any ("powershell.exe", "pwsh.exe")
-            | where CommandLine has_any ("-enc", "-EncodedCommand", "IEX", "Invoke-Expression", "DownloadString", "DownloadFile", "amsiutils", "-ExecutionPolicy Bypass", "-nop")
+            | where CommandLine has_any ("-enc", "-EncodedCommand", "IEX", "Invoke-Expression", "DownloadString", "DownloadFile", "amsiutils", "AmsiScanBuffer", "-ExecutionPolicy Bypass", "-exec bypass", "-WindowStyle Hidden", "-nop", "Invoke-Mimikatz")
           '''
           timeAggregation: 'Count'
           operator: 'GreaterThan'
@@ -659,7 +725,9 @@ resource powershellSuspiciousCommandsRule 'Microsoft.Insights/scheduledQueryRule
       ]
     }
     actions: {
-      actionGroups: [honeypotAlertActionGroup.id]
+      actionGroups: [
+        honeypotAlertActionGroup.id
+      ]
     }
     autoMitigate: false
   }
@@ -667,6 +735,7 @@ resource powershellSuspiciousCommandsRule 'Microsoft.Insights/scheduledQueryRule
     windowsDcr
   ]
 }
+
 // L. Create the Data Collection Rule for Windows (Security + Sysmon)
 module windowsDcr './windows-dcr.bicep' = {
   name: 'windowsDcrDeployment-${uniqueString(deployment().name)}'
@@ -772,7 +841,10 @@ module detectionAlerts './detection-alerts.bicep' = {
   ]
 }
 
-// S. Deploy the incident enrichment/notification playbook (SOAR)
+// S. Deploy the incident enrichment/notification playbook (SOAR).
+// No longer auto-triggered by a Sentinel automation rule (removed, since it required
+// paid Sentinel incidents). Wire this playbook's HTTP trigger URL into honeypotAlertActionGroup
+// as a webhook receiver if you want it to keep firing automatically.
 module irPlaybook './ir-playbook.bicep' = {
   name: 'irPlaybookDeployment-${uniqueString(deployment().name)}'
   params: {
@@ -782,60 +854,4 @@ module irPlaybook './ir-playbook.bicep' = {
     sentinel
     sentinelOnboarding
   ]
-}
-
-// T. Wire the playbook to run automatically when a new incident is created
-resource incidentAutomationRule 'Microsoft.SecurityInsights/automationRules@2023-11-01' = {
-  scope: law
-  name: guid(resourceGroup().id, 'run-ir-playbook-on-incident-creation')
-  properties: {
-    displayName: 'Run IR playbook on incident creation'
-    order: 1
-    triggeringLogic: {
-      isEnabled: true
-      triggersOn: 'Incidents'
-      triggersWhen: 'Created'
-    }
-    actions: [
-      {
-        order: 1
-        actionType: 'RunPlaybook'
-        actionConfiguration: {
-          logicAppResourceId: irPlaybook.outputs.playbookResourceId
-          tenantId: subscription().tenantId
-        }
-      }
-    ]
-  }
-  dependsOn: [
-    sentinel
-    sentinelOnboarding
-    playbookSentinelResponderRole
-    sentinelAutomationContributorRole
-  ]
-}
-
-// U. Grant the playbook's managed identity permission to comment on / update incidents
-resource playbookSentinelResponderRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, 'playbook-incident-enrichment-notify', 'Microsoft Sentinel Responder')
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', '3e150937-b8fe-4cfb-8069-0eaf05ecd056')
-    principalId: irPlaybook.outputs.playbookPrincipalId
-    principalType: 'ServicePrincipal'
-  }
-  dependsOn: [
-    irPlaybook
-  ]
-}
-
-// V. Grant Microsoft Sentinel's own service principal permission to run playbooks in this resource group
-resource sentinelAutomationContributorRole 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, 'Microsoft Sentinel Automation Contributor')
-  scope: resourceGroup()
-  properties: {
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', 'f4c81013-99ee-4d62-a7ee-b3f1f648599a')
-    principalId: sentinelPrincipalId
-    principalType: 'ServicePrincipal'
-  }
 }
